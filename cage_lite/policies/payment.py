@@ -13,6 +13,7 @@ def evaluate_payment(
     approval: ApprovalRecord | None = None,
 ) -> CageDecision:
     policy_ref = "policy/payment-threshold-v1"
+    evidence_ref = action.evidence_ref or f"evidence/{action.action_id}"
 
     if action.action_type != "payment":
         return CageDecision(
@@ -22,6 +23,7 @@ def evaluate_payment(
             outcome="refused",
             reason="This policy only applies to payment actions.",
             policy_ref=policy_ref,
+            evidence_ref=evidence_ref,
         )
 
     if standing.agent_id != action.agent_id:
@@ -32,6 +34,7 @@ def evaluate_payment(
             outcome="refused",
             reason="Standing record does not match the acting agent.",
             policy_ref=policy_ref,
+            evidence_ref=evidence_ref,
         )
 
     if not standing.can_perform("payment"):
@@ -42,6 +45,7 @@ def evaluate_payment(
             outcome="refused",
             reason="Agent does not have standing to perform payment actions.",
             policy_ref=policy_ref,
+            evidence_ref=evidence_ref,
             standing_ref=f"standing/{standing.agent_id}",
         )
 
@@ -53,6 +57,7 @@ def evaluate_payment(
             outcome="held",
             reason="Payment amount is missing, so the action cannot bind.",
             policy_ref=policy_ref,
+            evidence_ref=evidence_ref,
             standing_ref=f"standing/{standing.agent_id}",
         )
 
@@ -67,7 +72,7 @@ def evaluate_payment(
                 outcome="held",
                 reason="Payment exceeds the agent standing limit and requires approval before binding.",
                 policy_ref=policy_ref,
-                evidence_ref=f"evidence/{action.action_id}",
+                evidence_ref=evidence_ref,
                 standing_ref=f"standing/{standing.agent_id}",
             )
 
@@ -79,7 +84,7 @@ def evaluate_payment(
                 outcome="held",
                 reason="Approval does not cover this payment action.",
                 policy_ref=policy_ref,
-                evidence_ref=approval.evidence_ref,
+                evidence_ref=approval.evidence_ref or evidence_ref,
                 standing_ref=f"standing/{standing.agent_id}",
             )
 
@@ -90,6 +95,6 @@ def evaluate_payment(
         outcome="admitted",
         reason="Payment satisfies standing, policy, and approval requirements.",
         policy_ref=policy_ref,
-        evidence_ref=f"evidence/{action.action_id}",
+        evidence_ref=evidence_ref,
         standing_ref=f"standing/{standing.agent_id}",
     )

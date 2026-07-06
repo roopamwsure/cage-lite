@@ -4,6 +4,7 @@ from cage_lite.core.action import ActionRequest
 from cage_lite.core.approval import ApprovalRecord
 from cage_lite.core.boundary import evaluate_prebind
 from cage_lite.core.effect import execute_if_admitted
+from cage_lite.core.evidence import EvidenceRecord, write_evidence
 from cage_lite.core.standing import AgentStanding
 from cage_lite.policies.payment import evaluate_payment
 
@@ -16,12 +17,28 @@ def send_payment_to_bank():
 
 
 if __name__ == "__main__":
+    evidence_folder = Path("playground/evidence")
+
+    payment_evidence = EvidenceRecord.create(
+        evidence_type="payment_request",
+        subject_id="payment-002",
+        summary="Finance agent requested a 75,000 USD payment.",
+        source="demo",
+        data={
+            "amount": 75000,
+            "currency": "USD",
+            "requested_by": "finance-agent-01",
+        },
+    )
+    write_evidence(payment_evidence, evidence_folder)
+
     action = ActionRequest(
         action_id="payment-002",
         agent_id="finance-agent-01",
         action_type="payment",
         amount=75000,
         currency="USD",
+        evidence_ref=payment_evidence.evidence_id,
     )
 
     standing = AgentStanding(
@@ -30,11 +47,23 @@ if __name__ == "__main__":
         max_payment_amount=50000,
     )
 
+    approval_evidence = EvidenceRecord.create(
+        evidence_type="manager_approval",
+        subject_id=action.action_id,
+        summary="Manager approved the 75,000 USD payment.",
+        source="demo",
+        data={
+            "approved_by": "manager-01",
+            "approved_amount": 75000,
+        },
+    )
+    write_evidence(approval_evidence, evidence_folder)
+
     approval = ApprovalRecord.issue(
         action=action,
         approved_by="manager-01",
         approved_amount=75000,
-        evidence_ref="approval/email-manager-01-payment-002",
+        evidence_ref=approval_evidence.evidence_id,
     )
 
     decision = evaluate_prebind(

@@ -9,4 +9,4 @@ class ActionRequest:
     action_type: str
     amount: Optional[float] = None
     currency: Optional[str] = None
-    approved_by: Optional[str] = None
+    evidence_ref: Optional[str] = None
