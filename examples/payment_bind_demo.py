@@ -7,7 +7,7 @@ from cage_lite.core.standing import AgentStanding
 from cage_lite.policies.payment import evaluate_payment
 
 
-def send_payment():
+def send_payment_to_bank():
     return {
         "status": "sent",
         "payment_id": "pay-001",
@@ -36,7 +36,13 @@ if __name__ == "__main__":
         receipt_folder=Path("playground/receipts"),
     )
 
-    effect_result = execute_if_admitted(decision, send_payment)
+    effect_result = execute_if_admitted(
+        decision=decision,
+        effect=send_payment_to_bank,
+    )
 
+    print("CAGE decision:")
     print(decision)
+
+    print("\nEffect result:")
     print(effect_result)

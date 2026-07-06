@@ -8,13 +8,13 @@ def test_admitted_action_executes_effect():
         agent_id="finance-agent-01",
         action_type="payment",
         outcome="admitted",
-        reason="Payment satisfies policy requirements.",
+        reason="Payment satisfies standing and policy requirements.",
         receipt_id="receipt-001",
     )
 
     result = execute_if_admitted(
-        decision,
-        lambda: {"status": "sent"},
+        decision=decision,
+        effect=lambda: {"status": "sent"},
     )
 
     assert result.bound is True
@@ -23,11 +23,11 @@ def test_admitted_action_executes_effect():
 
 
 def test_held_action_does_not_execute_effect():
-    called = False
+    payment_was_sent = False
 
-    def blocked_effect():
-        nonlocal called
-        called = True
+    def send_payment():
+        nonlocal payment_was_sent
+        payment_was_sent = True
         return {"status": "sent"}
 
     decision = CageDecision(
@@ -39,11 +39,14 @@ def test_held_action_does_not_execute_effect():
         receipt_id="receipt-002",
     )
 
-    result = execute_if_admitted(decision, blocked_effect)
+    result = execute_if_admitted(
+        decision=decision,
+        effect=send_payment,
+    )
 
     assert result.bound is False
     assert result.result is None
-    assert called is False
+    assert payment_was_sent is False
 
 
 def test_refused_action_does_not_execute_effect():
@@ -52,12 +55,33 @@ def test_refused_action_does_not_execute_effect():
         agent_id="support-agent-01",
         action_type="payment",
         outcome="refused",
-        reason="Agent does not have standing.",
+        reason="Agent does not have standing to perform payment actions.",
+        receipt_id="receipt-003",
     )
 
     result = execute_if_admitted(
-        decision,
-        lambda: {"status": "sent"},
+        decision=decision,
+        effect=lambda: {"status": "sent"},
     )
 
     assert result.bound is False
+    assert result.result is None
+
+
+def test_no_bind_action_does_not_execute_effect():
+    decision = CageDecision(
+        action_id="payment-004",
+        agent_id="finance-agent-01",
+        action_type="payment",
+        outcome="no-bind",
+        reason="Action was rendered non-effective.",
+        receipt_id="receipt-004",
+    )
+
+    result = execute_if_admitted(
+        decision=decision,
+        effect=lambda: {"status": "sent"},
+    )
+
+    assert result.bound is False
+    assert result.result is None
