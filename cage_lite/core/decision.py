@@ -25,6 +25,7 @@ class CageDecision:
     evidence_refs: list[str] = field(default_factory=list)
     standing_ref: Optional[str] = None
     receipt_id: Optional[str] = None
+    allowed_scope: dict[str, object] = field(default_factory=dict)
 
     def all_evidence_refs(self) -> list[str]:
         refs = []
@@ -34,3 +35,5 @@ class CageDecision:
                 refs.append(ref)
 
         return refs
+
+

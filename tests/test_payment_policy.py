@@ -144,3 +144,25 @@ def test_approved_payment_keeps_payment_and_approval_evidence():
         "evidence/payment-006",
         "evidence/approval-payment-006",
     ]
+
+def test_large_payment_can_be_narrowed_to_standing_limit():
+    action = ActionRequest(
+        action_id="payment-007",
+        agent_id="finance-agent-01",
+        action_type="payment",
+        amount=75000,
+        currency="USD",
+        evidence_ref="evidence/payment-007",
+    )
+
+    decision = evaluate_payment(
+        action=action,
+        standing=payment_standing(),
+        allow_narrowing=True,
+    )
+
+    assert decision.outcome == "narrowed"
+    assert decision.allowed_scope == {
+        "amount": 50000,
+        "currency": "USD",
+    }

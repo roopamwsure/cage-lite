@@ -57,3 +57,26 @@ def test_receipt_records_all_evidence_refs():
         "evidence/payment-003",
         "evidence/approval-payment-003",
     ]
+
+def test_receipt_records_allowed_scope():
+    decision = CageDecision(
+        action_id="payment-007",
+        agent_id="finance-agent-01",
+        action_type="payment",
+        outcome="narrowed",
+        reason="Payment was narrowed to the allowed amount.",
+        policy_ref="policy/payment-threshold-v1",
+        evidence_ref="evidence/payment-007",
+        standing_ref="standing/finance-agent-01",
+        allowed_scope={
+            "amount": 50000,
+            "currency": "USD",
+        },
+    )
+
+    receipt = create_receipt(decision)
+
+    assert receipt.allowed_scope == {
+        "amount": 50000,
+        "currency": "USD",
+    }

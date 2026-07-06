@@ -22,6 +22,7 @@ class CageReceipt:
     evidence_ref: str | None = None
     evidence_refs: list[str] = field(default_factory=list)
     standing_ref: str | None = None
+    allowed_scope: dict[str, object] = field(default_factory=dict)
     digest: str | None = None
 
     def to_dict(self) -> dict:
@@ -42,6 +43,7 @@ def create_receipt(decision: CageDecision, prebind: bool = True) -> CageReceipt:
         evidence_ref=decision.evidence_ref,
         evidence_refs=decision.all_evidence_refs(),
         standing_ref=decision.standing_ref,
+        allowed_scope=decision.allowed_scope,
     )
 
     receipt.digest = _digest(receipt)
