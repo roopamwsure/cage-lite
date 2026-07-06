@@ -2,17 +2,17 @@ from pathlib import Path
 
 from cage_lite.core.action import ActionRequest
 from cage_lite.core.boundary import evaluate_prebind
-from cage_lite.core.effect import execute_if_admitted
+from cage_lite.core.effect import execute_narrowed
 from cage_lite.core.standing import AgentStanding
 from cage_lite.policies.payment import evaluate_payment
 
 
-def send_narrowed_payment():
+def send_payment_with_allowed_scope(scope):
     return {
         "status": "sent",
         "payment_id": "pay-narrowed-001",
-        "amount": 50000,
-        "currency": "USD",
+        "amount": scope["amount"],
+        "currency": scope["currency"],
     }
 
 
@@ -41,18 +41,16 @@ if __name__ == "__main__":
         },
     )
 
-    if decision.outcome == "narrowed":
-        print("CAGE narrowed the action.")
-        print(f"Original amount: {action.amount}")
-        print(f"Allowed amount: {decision.allowed_scope['amount']}")
-
-    effect_result = execute_if_admitted(
+    effect_result = execute_narrowed(
         decision=decision,
-        effect=send_narrowed_payment,
+        effect=send_payment_with_allowed_scope,
     )
 
-    print("\nCAGE decision:")
+    print("CAGE decision:")
     print(decision)
+
+    print("\nRequested amount:")
+    print(action.amount)
 
     print("\nEffect result:")
     print(effect_result)

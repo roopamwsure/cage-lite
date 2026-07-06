@@ -1,5 +1,6 @@
 from cage_lite.core.decision import CageDecision
 from cage_lite.core.effect import execute_if_admitted
+from cage_lite.core.effect import execute_if_admitted, execute_narrowed
 
 
 def test_admitted_action_executes_effect():
@@ -85,3 +86,57 @@ def test_no_bind_action_does_not_execute_effect():
 
     assert result.bound is False
     assert result.result is None
+
+def test_narrowed_action_executes_only_allowed_scope():
+    decision = CageDecision(
+        action_id="payment-004",
+        agent_id="finance-agent-01",
+        action_type="payment",
+        outcome="narrowed",
+        reason="Payment was narrowed to the standing limit.",
+        receipt_id="receipt-004",
+        allowed_scope={
+            "amount": 50000,
+            "currency": "USD",
+        },
+    )
+
+    result = execute_narrowed(
+        decision=decision,
+        effect=lambda scope: {
+            "status": "sent",
+            "amount": scope["amount"],
+            "currency": scope["currency"],
+        },
+    )
+
+    assert result.bound is True
+    assert result.result["amount"] == 50000
+    assert result.result["currency"] == "USD"
+
+
+def test_narrowed_action_without_allowed_scope_does_not_execute():
+    payment_was_sent = False
+
+    def send_payment(scope):
+        nonlocal payment_was_sent
+        payment_was_sent = True
+        return {"status": "sent"}
+
+    decision = CageDecision(
+        action_id="payment-005",
+        agent_id="finance-agent-01",
+        action_type="payment",
+        outcome="narrowed",
+        reason="Payment was narrowed, but scope is missing.",
+        receipt_id="receipt-005",
+    )
+
+    result = execute_narrowed(
+        decision=decision,
+        effect=send_payment,
+    )
+
+    assert result.bound is False
+    assert result.result is None
+    assert payment_was_sent is False
