@@ -9,7 +9,7 @@ BoundaryOutcome = Literal[
     "escalated",
     "refused",
     "quarantined",
-    "no_bind",
+    "no-bind",
 ]
 
 
