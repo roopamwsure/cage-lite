@@ -1,4 +1,4 @@
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -20,6 +20,7 @@ class CageReceipt:
     created_at: str
     policy_ref: str | None = None
     evidence_ref: str | None = None
+    evidence_refs: list[str] = field(default_factory=list)
     standing_ref: str | None = None
     digest: str | None = None
 
@@ -39,6 +40,7 @@ def create_receipt(decision: CageDecision, prebind: bool = True) -> CageReceipt:
         created_at=datetime.now(timezone.utc).isoformat(),
         policy_ref=decision.policy_ref,
         evidence_ref=decision.evidence_ref,
+        evidence_refs=decision.all_evidence_refs(),
         standing_ref=decision.standing_ref,
     )
 

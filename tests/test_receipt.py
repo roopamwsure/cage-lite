@@ -37,3 +37,23 @@ def test_receipt_can_be_written(tmp_path):
 
     assert path.exists()
     assert receipt.receipt_id in path.name
+
+def test_receipt_records_all_evidence_refs():
+    decision = CageDecision(
+        action_id="payment-003",
+        agent_id="finance-agent-01",
+        action_type="payment",
+        outcome="admitted",
+        reason="Payment satisfies standing, policy, and approval requirements.",
+        policy_ref="policy/payment-threshold-v1",
+        evidence_ref="evidence/payment-003",
+        evidence_refs=["evidence/approval-payment-003"],
+        standing_ref="standing/finance-agent-01",
+    )
+
+    receipt = create_receipt(decision)
+
+    assert receipt.evidence_refs == [
+        "evidence/payment-003",
+        "evidence/approval-payment-003",
+    ]

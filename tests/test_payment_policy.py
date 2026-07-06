@@ -115,3 +115,32 @@ def test_agent_without_payment_standing_is_refused():
     decision = evaluate_payment(action, standing)
 
     assert decision.outcome == "refused"
+
+def test_approved_payment_keeps_payment_and_approval_evidence():
+    action = ActionRequest(
+        action_id="payment-006",
+        agent_id="finance-agent-01",
+        action_type="payment",
+        amount=75000,
+        currency="USD",
+        evidence_ref="evidence/payment-006",
+    )
+
+    approval = ApprovalRecord.issue(
+        action=action,
+        approved_by="manager-01",
+        approved_amount=75000,
+        evidence_ref="evidence/approval-payment-006",
+    )
+
+    decision = evaluate_payment(
+        action=action,
+        standing=payment_standing(),
+        approval=approval,
+    )
+
+    assert decision.outcome == "admitted"
+    assert decision.all_evidence_refs() == [
+        "evidence/payment-006",
+        "evidence/approval-payment-006",
+    ]
