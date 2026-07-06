@@ -1,4 +1,5 @@
 from cage_lite.core.action import ActionRequest
+from cage_lite.core.approval import ApprovalRecord
 from cage_lite.core.decision import CageDecision
 from cage_lite.core.standing import AgentStanding
 
@@ -6,7 +7,11 @@ from cage_lite.core.standing import AgentStanding
 PAYMENT_LIMIT = 50000
 
 
-def evaluate_payment(action: ActionRequest, standing: AgentStanding) -> CageDecision:
+def evaluate_payment(
+    action: ActionRequest,
+    standing: AgentStanding,
+    approval: ApprovalRecord | None = None,
+) -> CageDecision:
     policy_ref = "policy/payment-threshold-v1"
 
     if action.action_type != "payment":
@@ -53,24 +58,37 @@ def evaluate_payment(action: ActionRequest, standing: AgentStanding) -> CageDeci
 
     limit = standing.max_payment_amount or PAYMENT_LIMIT
 
-    if action.amount > limit and not action.approved_by:
-        return CageDecision(
-            action_id=action.action_id,
-            agent_id=action.agent_id,
-            action_type=action.action_type,
-            outcome="held",
-            reason="Payment exceeds the agent standing limit and requires approval before binding.",
-            policy_ref=policy_ref,
-            evidence_ref=f"evidence/{action.action_id}",
-            standing_ref=f"standing/{standing.agent_id}",
-        )
+    if action.amount > limit:
+        if approval is None:
+            return CageDecision(
+                action_id=action.action_id,
+                agent_id=action.agent_id,
+                action_type=action.action_type,
+                outcome="held",
+                reason="Payment exceeds the agent standing limit and requires approval before binding.",
+                policy_ref=policy_ref,
+                evidence_ref=f"evidence/{action.action_id}",
+                standing_ref=f"standing/{standing.agent_id}",
+            )
+
+        if not approval.covers(action):
+            return CageDecision(
+                action_id=action.action_id,
+                agent_id=action.agent_id,
+                action_type=action.action_type,
+                outcome="held",
+                reason="Approval does not cover this payment action.",
+                policy_ref=policy_ref,
+                evidence_ref=approval.evidence_ref,
+                standing_ref=f"standing/{standing.agent_id}",
+            )
 
     return CageDecision(
         action_id=action.action_id,
         agent_id=action.agent_id,
         action_type=action.action_type,
         outcome="admitted",
-        reason="Payment satisfies standing and policy requirements.",
+        reason="Payment satisfies standing, policy, and approval requirements.",
         policy_ref=policy_ref,
         evidence_ref=f"evidence/{action.action_id}",
         standing_ref=f"standing/{standing.agent_id}",
