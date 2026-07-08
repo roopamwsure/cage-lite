@@ -35,3 +35,6 @@ Thumbs.db
 playground/receipts/
 
 playground/evidence/
+# Local demo output
+playground/
+playground-approved/
