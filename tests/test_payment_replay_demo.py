@@ -9,7 +9,9 @@ def test_payment_replay_demo_links_held_and_admitted_receipts(tmp_path):
 
     assert summary["scenario"] == "75000_vendor_payment_replay"
     assert summary["amount"] == 75000
+    assert summary["currency"] == "USD"
     assert summary["standing_limit"] == 50000
+    assert summary["approval_required_above"] == 50000
 
     assert held["boundary_outcome"] == "held"
     assert held["effect_disposition"] == "no_bind"
