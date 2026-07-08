@@ -8,6 +8,7 @@ from cage_lite.core.effect import execute_if_admitted
 from cage_lite.core.evidence import EvidenceRecord, write_evidence
 from cage_lite.core.standing import AgentStanding
 from cage_lite.policies.payment import evaluate_payment
+from cage_lite.core.ledger import FileLedger
 
 
 def send_payment_to_bank():
@@ -20,6 +21,7 @@ def send_payment_to_bank():
 def run_payment(amount: float, approved: bool, output_dir: Path):
     evidence_dir = output_dir / "evidence"
     receipt_dir = output_dir / "receipts"
+    ledger = FileLedger(output_dir)
 
     payment_evidence = EvidenceRecord.create(
         evidence_type="payment_request",
@@ -82,10 +84,12 @@ def run_payment(amount: float, approved: bool, output_dir: Path):
     )
 
     effect_result = execute_if_admitted(
-        decision=decision,
-        effect=send_payment_to_bank,
+    decision=decision,
+    effect=send_payment_to_bank,
+    tool_name="mock_vendor_payment_api",
+    ledger=ledger,
     )
-
+    
     return decision, effect_result
 
 
@@ -132,6 +136,9 @@ def main():
     print(f"  bound: {effect_result.bound}")
     print(f"  reason: {effect_result.reason}")
     print(f"  result: {effect_result.result}")
+    print(f" effect_id: {effect_result.effect_id}")
+    print(f" disposition: {effect_result.disposition}")
+    print(f" system_of_record_status: {effect_result.system_of_record_status}")
 
 
 if __name__ == "__main__":
