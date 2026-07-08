@@ -11,3 +11,8 @@ license = { text = "Apache-2.0" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["cage_lite*"]
+exclude = ["tests*", "examples*", "docs*", "playground*"]
