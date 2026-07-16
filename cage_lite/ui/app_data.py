@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import html
 from pathlib import Path
+from datetime import datetime, timezone
 from typing import Any
 
 from cage_lite.ui import receipt_viewer_v1 as viewer
@@ -141,17 +142,27 @@ def action_label(receipt: dict) -> str:
 
 
 def short_time(receipt: dict) -> str:
-    value = str(receipt.get("created_at") or "")
+    value = str(receipt.get("created_at") or "").strip()
 
     if not value:
         return "—"
 
-    if "T" not in value:
+    try:
+        timestamp = datetime.fromisoformat(
+            value.replace("Z", "+00:00")
+        )
+    except ValueError:
         return value
 
-    date_part, time_part = value.split("T", 1)
-    return f"{date_part} {time_part[:8]} UTC"
+    if timestamp.tzinfo is not None:
+        timestamp = timestamp.astimezone(timezone.utc)
 
+    milliseconds = timestamp.microsecond // 1000
+
+    return (
+        f"{timestamp:%Y-%m-%d %H:%M:%S}."
+        f"{milliseconds:03d} UTC"
+    )
 
 def latest_replay_pair(
     receipts: list[dict],

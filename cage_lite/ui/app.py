@@ -126,30 +126,44 @@ def render_pending_message() -> None:
         )
 
 
-def main() -> None:
-    viewer.render_css()
-    render_styles()
-    viewer.render_header()
+def render_overview_empty(root: Path) -> None:
+    overview.page_heading(
+        "Overview",
+        "Current boundary decision, effect proof, "
+        "recent runs, and replay status.",
+    )
 
-    page = render_navigation()
-    root = artifact_root()
+    st.info(
+        "No CAGE Warrants were found in the selected artifact folder."
+    )
 
-    summary, receipts, effects = load_artifacts(root)
+    st.write(
+        "Use Developer controls below to generate the replay demo, "
+        "or select a folder containing existing CAGE-lite artifacts."
+    )
 
-    render_pending_message()
+    st.caption(f"Current artifact folder: {root}")
 
-    if page == "Architecture":
-        architecture.render()
 
-    elif not receipts:
-        viewer.render_empty(root)
+def render_page(
+    page: str,
+    root: Path,
+    summary: dict,
+    receipts: list[dict],
+    effects: list[dict],
+) -> None:
+    if page == "Overview":
+        if receipts:
+            overview.render(
+                summary,
+                receipts,
+                effects,
+            )
+        else:
+            render_overview_empty(root)
 
-    elif page == "Overview":
-        overview.render(
-            summary,
-            receipts,
-            effects,
-        )
+        st.divider()
+        render_developer_controls()
 
     elif page == "Boundary Runs":
         boundary_runs.render(
@@ -169,9 +183,32 @@ def main() -> None:
             effects,
         )
 
-    elif page == "Overview":
-        st.divider()
-        render_developer_controls()
+    elif page == "Architecture":
+        architecture.render()
+
+    else:
+        st.error(f"Unknown application page: {page}")
+
+
+def main() -> None:
+    viewer.render_css()
+    render_styles()
+    viewer.render_header()
+
+    page = render_navigation()
+    root = artifact_root()
+
+    summary, receipts, effects = load_artifacts(root)
+
+    render_pending_message()
+
+    render_page(
+        page,
+        root,
+        summary,
+        receipts,
+        effects,
+    )
 
 
 if __name__ == "__main__":
