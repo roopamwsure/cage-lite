@@ -1,10 +1,34 @@
+from copy import deepcopy
 from types import SimpleNamespace
 
 from cage_lite.core.action import ActionRequest
 from cage_lite.core.approval import ApprovalRecord
 from cage_lite.core.decision import CageDecision
-from cage_lite.core.receipt import RECEIPT_SCHEMA_VERSION, create_receipt
+from cage_lite.core.receipt import (
+    DIGEST_STATUS_LEGACY,
+    DIGEST_STATUS_MISMATCH,
+    DIGEST_STATUS_NOT_AVAILABLE,
+    DIGEST_STATUS_VERIFIED,
+    RECEIPT_SCHEMA_VERSION,
+    create_receipt,
+    verify_receipt_digest,
+)
 from cage_lite.core.standing import AgentStanding
+
+
+def current_receipt_dict():
+    decision = CageDecision(
+        action_id="payment-digest-001",
+        agent_id="finance-agent-01",
+        action_type="payment",
+        outcome="held",
+        reason="Payment requires approval before binding.",
+        policy_ref="policy/payment-threshold-v1",
+        evidence_ref="evidence/payment-digest-001",
+        standing_ref="standing/finance-agent-01",
+    )
+
+    return create_receipt(decision).to_dict()
 
 
 def test_v04_receipt_records_no_bind_effect_proof():
@@ -28,7 +52,10 @@ def test_v04_receipt_records_no_bind_effect_proof():
         agent_id=action.agent_id,
         action_type=action.action_type,
         outcome="held",
-        reason="Payment exceeds the agent standing limit and requires approval before binding.",
+        reason=(
+            "Payment exceeds the agent standing limit and "
+            "requires approval before binding."
+        ),
         policy_ref="policy/payment-threshold-v1",
         evidence_ref=action.evidence_ref,
         standing_ref="standing/finance-agent-01",
@@ -110,7 +137,10 @@ def test_v04_receipt_links_replay_to_original_held_receipt():
         agent_id=action.agent_id,
         action_type=action.action_type,
         outcome="admitted",
-        reason="Payment satisfies standing, policy, and approval requirements.",
+        reason=(
+            "Payment satisfies standing, policy, "
+            "and approval requirements."
+        ),
         policy_ref="policy/payment-threshold-v1",
         evidence_ref=action.evidence_ref,
         evidence_refs=[approval.evidence_ref],
@@ -155,3 +185,125 @@ def test_v04_receipt_links_replay_to_original_held_receipt():
         "evidence/payment-75000",
         "evidence/approval-payment-75000",
     ]
+
+
+def test_v04_receipt_digest_verifies():
+    warrant = current_receipt_dict()
+
+    result = verify_receipt_digest(warrant)
+
+    assert result.status == DIGEST_STATUS_VERIFIED
+    assert result.recorded_digest == warrant["digest"]
+    assert result.computed_digest == warrant["digest"]
+    assert result.schema_version == RECEIPT_SCHEMA_VERSION
+
+
+def test_v04_receipt_digest_detects_modified_business_field():
+    warrant = current_receipt_dict()
+    warrant["action_id"] = "payment-tampered-001"
+
+    result = verify_receipt_digest(warrant)
+
+    assert result.status == DIGEST_STATUS_MISMATCH
+    assert result.computed_digest != result.recorded_digest
+
+
+def test_v04_receipt_digest_detects_modified_boundary_outcome():
+    warrant = current_receipt_dict()
+    warrant["boundary_outcome"] = "admitted"
+
+    result = verify_receipt_digest(warrant)
+
+    assert result.status == DIGEST_STATUS_MISMATCH
+
+
+def test_v04_receipt_digest_detects_modified_effect_proof():
+    warrant = current_receipt_dict()
+    warrant["effect_executed"] = True
+    warrant["effect_disposition"] = "bound"
+    warrant["system_of_record_status"] = "written"
+
+    result = verify_receipt_digest(warrant)
+
+    assert result.status == DIGEST_STATUS_MISMATCH
+
+
+def test_v04_receipt_digest_is_not_available_when_missing():
+    warrant = current_receipt_dict()
+    warrant.pop("digest")
+
+    result = verify_receipt_digest(warrant)
+
+    assert result.status == DIGEST_STATUS_NOT_AVAILABLE
+    assert result.recorded_digest is None
+    assert result.computed_digest is None
+
+
+def test_v04_receipt_digest_is_not_available_when_invalid():
+    warrant = current_receipt_dict()
+    warrant["digest"] = "not-a-valid-digest"
+
+    result = verify_receipt_digest(warrant)
+
+    assert result.status == DIGEST_STATUS_NOT_AVAILABLE
+    assert result.recorded_digest == "not-a-valid-digest"
+    assert result.computed_digest is None
+
+
+def test_v04_receipt_digest_marks_unsupported_schema_as_legacy():
+    warrant = current_receipt_dict()
+    warrant["schema_version"] = "0.3"
+
+    result = verify_receipt_digest(warrant)
+
+    assert result.status == DIGEST_STATUS_LEGACY
+    assert result.schema_version == "0.3"
+
+
+def test_v04_receipt_digest_marks_missing_schema_as_legacy():
+    warrant = current_receipt_dict()
+    warrant.pop("schema_version")
+
+    result = verify_receipt_digest(warrant)
+
+    assert result.status == DIGEST_STATUS_LEGACY
+    assert result.schema_version is None
+
+
+def test_v04_receipt_digest_ignores_loader_file_name():
+    warrant = current_receipt_dict()
+    warrant["_file_name"] = "receipt-payment-digest-001.json"
+
+    result = verify_receipt_digest(warrant)
+
+    assert result.status == DIGEST_STATUS_VERIFIED
+
+
+def test_v04_receipt_digest_verification_does_not_mutate_warrant():
+    warrant = current_receipt_dict()
+    warrant["_file_name"] = "receipt-payment-digest-001.json"
+    original = deepcopy(warrant)
+
+    verify_receipt_digest(warrant)
+
+    assert warrant == original
+
+
+def test_v04_receipt_digest_marks_missing_schema_field_as_legacy():
+    warrant = current_receipt_dict()
+    warrant.pop("agent_id")
+
+    result = verify_receipt_digest(warrant)
+
+    assert result.status == DIGEST_STATUS_LEGACY
+    assert "agent_id" in result.reason
+
+
+def test_v04_receipt_digest_marks_unknown_field_as_legacy():
+    warrant = current_receipt_dict()
+    warrant["unexpected_field"] = "unexpected-value"
+
+    result = verify_receipt_digest(warrant)
+
+    assert result.status == DIGEST_STATUS_LEGACY
+    assert "unexpected_field" in result.reason

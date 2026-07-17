@@ -1,14 +1,24 @@
-from dataclasses import asdict, dataclass, field, is_dataclass
+from dataclasses import asdict, dataclass, field, fields, is_dataclass
 from datetime import datetime, timezone
 import hashlib
 import json
 from pathlib import Path
+import re
 from uuid import uuid4
 
 from cage_lite.core.decision import CageDecision
 
 
 RECEIPT_SCHEMA_VERSION = "0.4"
+
+DIGEST_STATUS_VERIFIED = "VERIFIED"
+DIGEST_STATUS_MISMATCH = "MISMATCH"
+DIGEST_STATUS_NOT_AVAILABLE = "NOT AVAILABLE"
+DIGEST_STATUS_LEGACY = "LEGACY"
+
+RECEIPT_DIGEST_METADATA_FIELDS = {
+    "_file_name",
+}
 
 
 @dataclass
@@ -64,6 +74,15 @@ class CageReceipt:
 
     def to_dict(self) -> dict:
         return asdict(self)
+
+
+@dataclass(frozen=True)
+class ReceiptDigestVerification:
+    status: str
+    recorded_digest: str | None
+    computed_digest: str | None
+    schema_version: str | None
+    reason: str
 
 
 def create_receipt(
@@ -167,6 +186,134 @@ def write_receipt(receipt: CageReceipt, folder: Path) -> Path:
     return path
 
 
+def verify_receipt_digest(
+    warrant: dict[str, object],
+) -> ReceiptDigestVerification:
+    if not isinstance(warrant, dict):
+        return ReceiptDigestVerification(
+            status=DIGEST_STATUS_LEGACY,
+            recorded_digest=None,
+            computed_digest=None,
+            schema_version=None,
+            reason="Digest verification requires a Warrant JSON object.",
+        )
+
+    schema_version = warrant.get("schema_version")
+    schema_label = (
+        str(schema_version)
+        if schema_version is not None
+        else None
+    )
+
+    if schema_version != RECEIPT_SCHEMA_VERSION:
+        if schema_version is None:
+            reason = "The Warrant schema version is missing."
+        else:
+            reason = (
+                "Digest verification is not supported for "
+                f"schema version {schema_version!r}."
+            )
+
+        return ReceiptDigestVerification(
+            status=DIGEST_STATUS_LEGACY,
+            recorded_digest=None,
+            computed_digest=None,
+            schema_version=schema_label,
+            reason=reason,
+        )
+
+    data = {
+        key: value
+        for key, value in warrant.items()
+        if key not in RECEIPT_DIGEST_METADATA_FIELDS
+    }
+
+    schema_fields = {
+        receipt_field.name
+        for receipt_field in fields(CageReceipt)
+    }
+    required_fields = schema_fields - {"digest"}
+
+    actual_fields = set(data)
+    missing_fields = sorted(required_fields - actual_fields)
+    extra_fields = sorted(actual_fields - schema_fields)
+
+    shape_issues = []
+
+    if missing_fields:
+        shape_issues.append(
+            "missing fields: " + ", ".join(missing_fields)
+        )
+
+    if extra_fields:
+        shape_issues.append(
+            "unsupported fields: " + ", ".join(extra_fields)
+        )
+
+    if shape_issues:
+        return ReceiptDigestVerification(
+            status=DIGEST_STATUS_LEGACY,
+            recorded_digest=None,
+            computed_digest=None,
+            schema_version=schema_label,
+            reason=(
+                "The schema 0.4 Warrant cannot be verified because "
+                + "; ".join(shape_issues)
+                + "."
+            ),
+        )
+
+    recorded_digest = data.get("digest")
+
+    if not isinstance(recorded_digest, str):
+        return ReceiptDigestVerification(
+            status=DIGEST_STATUS_NOT_AVAILABLE,
+            recorded_digest=None,
+            computed_digest=None,
+            schema_version=schema_label,
+            reason="The Warrant does not contain a recorded digest.",
+        )
+
+    normalized_digest = recorded_digest.strip().lower()
+
+    if not re.fullmatch(r"[0-9a-f]{64}", normalized_digest):
+        return ReceiptDigestVerification(
+            status=DIGEST_STATUS_NOT_AVAILABLE,
+            recorded_digest=recorded_digest,
+            computed_digest=None,
+            schema_version=schema_label,
+            reason=(
+                "The recorded digest is not a valid "
+                "64-character SHA-256 hexadecimal value."
+            ),
+        )
+
+    computed_digest = _digest_data(data)
+
+    if normalized_digest == computed_digest:
+        return ReceiptDigestVerification(
+            status=DIGEST_STATUS_VERIFIED,
+            recorded_digest=recorded_digest,
+            computed_digest=computed_digest,
+            schema_version=schema_label,
+            reason=(
+                "The recorded digest matches the independently "
+                "recomputed schema 0.4 digest."
+            ),
+        )
+
+    return ReceiptDigestVerification(
+        status=DIGEST_STATUS_MISMATCH,
+        recorded_digest=recorded_digest,
+        computed_digest=computed_digest,
+        schema_version=schema_label,
+        reason=(
+            "The recorded digest does not match the independently "
+            "recomputed schema 0.4 digest."
+        ),
+    )
+
+
 def _approval_required(
     amount: float | None,
     standing_limit: float | None,
@@ -260,11 +407,15 @@ def _payload_hash(value: object | None) -> str | None:
 
 
 def _digest(receipt: CageReceipt) -> str:
-    data = receipt.to_dict()
-    data["digest"] = None
+    return _digest_data(receipt.to_dict())
+
+
+def _digest_data(data: dict[str, object]) -> str:
+    canonical_data = dict(data)
+    canonical_data["digest"] = None
 
     payload = json.dumps(
-        data,
+        canonical_data,
         sort_keys=True,
         default=str,
     )
