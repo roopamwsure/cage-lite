@@ -5,7 +5,7 @@ from pathlib import Path
 import streamlit as st
 
 from cage_lite.ui import receipt_viewer_v1 as viewer
-from cage_lite.ui.app_data import load_artifacts
+from cage_lite.ui.app_data import load_artifacts_with_issues
 from cage_lite.ui.app_styles import render_styles
 from cage_lite.ui.views import architecture
 from cage_lite.ui.views import boundary_runs
@@ -125,6 +125,66 @@ def render_pending_message() -> None:
             f"Could not generate replay demo: {error}"
         )
 
+def render_artifact_load_issues(
+    summary: dict,
+    receipts: list[dict],
+    effects: list[dict],
+    issues: list[dict[str, str]],
+) -> None:
+    failures = [
+        issue
+        for issue in issues
+        if issue.get("status") != "missing"
+    ]
+
+    if not failures:
+        return
+
+    details = []
+
+    for issue in failures:
+        artifact_type = str(
+            issue.get("artifact_type") or "artifact"
+        )
+        label = artifact_type.replace("_", " ").title()
+
+        file_name = str(
+            issue.get("file_name") or "unknown file"
+        )
+        status = str(
+            issue.get("status") or "error"
+        ).replace("_", " ").upper()
+        message = str(
+            issue.get("message")
+            or "The artifact could not be loaded."
+        )
+
+        details.append(
+            f"- **{label}:** `{file_name}` "
+            f"[{status}] - {message}"
+        )
+
+    usable_artifacts_loaded = bool(
+        summary or receipts or effects
+    )
+
+    if usable_artifacts_loaded:
+        heading = (
+            "Some artifacts could not be loaded. "
+            "Valid artifacts are still shown."
+        )
+        st.warning(
+            heading + "\n\n" + "\n".join(details)
+        )
+        return
+
+    heading = (
+        "Artifact loading failed. "
+        "No usable artifacts were loaded."
+    )
+    st.error(
+        heading + "\n\n" + "\n".join(details)
+    )
 
 def render_overview_empty(root: Path) -> None:
     overview.page_heading(
@@ -198,9 +258,18 @@ def main() -> None:
     page = render_navigation()
     root = artifact_root()
 
-    summary, receipts, effects = load_artifacts(root)
+    summary, receipts, effects, issues = (
+        load_artifacts_with_issues(root)
+    )
 
     render_pending_message()
+
+    render_artifact_load_issues(
+        summary,
+        receipts,
+        effects,
+        issues,
+    )
 
     render_page(
         page,
