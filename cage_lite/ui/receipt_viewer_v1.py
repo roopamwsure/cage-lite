@@ -20,10 +20,6 @@ DEFAULT_ARTIFACT_DIR = "playground/v04-replay-demo"
 LOGO_PATH = Path(__file__).parent / "assets" / "cage_logo.png"
 
 
-# -----------------------------
-# Helpers
-# -----------------------------
-
 def esc(value: Any) -> str:
     if value is None:
         return "—"
@@ -240,10 +236,6 @@ def warrant_bundle(
     return json.dumps(bundle, indent=2, sort_keys=True)
 
 
-# -----------------------------
-# CSS
-# -----------------------------
-
 def render_css() -> None:
     st.markdown(
         """
@@ -338,17 +330,6 @@ footer {visibility: hidden;}
     margin-top: 0.25rem;
     color: #475467;
     font-size: 0.96rem;
-}
-
-.version-pill {
-    border: 1px solid #cbd5e1;
-    border-radius: 999px;
-    background: #ffffff;
-    color: #344054;
-    padding: 0.48rem 0.85rem;
-    font-size: 0.82rem;
-    font-weight: 850;
-    white-space: nowrap;
 }
 
 .success-banner {
@@ -806,10 +787,12 @@ def render_header() -> None:
         f'{logo_html()}'
         '<div>'
         '<div class="brand-title">CAGE-lite</div>'
-        '<div class="brand-subtitle">Prebind assurance for AI-agent actions at the business consequence boundary.</div>'
+        '<div class="brand-subtitle">'
+        'Prebind assurance for AI-agent actions at the '
+        'business consequence boundary.'
         '</div>'
         '</div>'
-        '<div class="version-pill">v0.7 Warrant Demo</div>'
+        '</div>'
         '</div>'
     )
 
@@ -1085,7 +1068,6 @@ def main() -> None:
     render_css()
     render_header()
 
-    # Hidden by default so the demo starts with the actual product view, not plumbing.
     root = render_demo_controls()
 
     summary, receipts, effects = load_artifacts(root)
