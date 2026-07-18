@@ -20,8 +20,14 @@ def run_replay_demo(output_dir: Path) -> dict:
         replay_of_receipt_id=held_decision.receipt_id,
     )
 
-    held_receipt = _read_receipt(output_dir, held_decision.receipt_id)
-    replay_receipt = _read_receipt(output_dir, replay_decision.receipt_id)
+    held_receipt = _read_receipt(
+        output_dir,
+        held_decision.receipt_id,
+    )
+    replay_receipt = _read_receipt(
+        output_dir,
+        replay_decision.receipt_id,
+    )
 
     summary = {
         "scenario": "75000_vendor_payment_replay",
@@ -45,13 +51,24 @@ def run_replay_demo(output_dir: Path) -> dict:
     return summary
 
 
-def _read_receipt(output_dir: Path, receipt_id: str) -> dict:
-    path = output_dir / "receipts" / f"{receipt_id}.json"
+def _read_receipt(
+    output_dir: Path,
+    receipt_id: str,
+) -> dict:
+    path = (
+        output_dir
+        / "receipts"
+        / f"{receipt_id}.json"
+    )
 
     if not path.exists():
-        raise FileNotFoundError(f"Receipt not found: {path}")
+        raise FileNotFoundError(
+            f"Receipt not found: {path}"
+        )
 
-    return json.loads(path.read_text(encoding="utf-8"))
+    return json.loads(
+        path.read_text(encoding="utf-8")
+    )
 
 
 def _receipt_summary(receipt: dict) -> dict:
@@ -59,48 +76,120 @@ def _receipt_summary(receipt: dict) -> dict:
         "receipt_id": receipt["receipt_id"],
         "action_id": receipt["action_id"],
         "movement_id": receipt["movement_id"],
-        "replay_of_receipt_id": receipt["replay_of_receipt_id"],
+        "replay_of_receipt_id": receipt[
+            "replay_of_receipt_id"
+        ],
         "agent_id": receipt["agent_id"],
         "action_type": receipt["action_type"],
         "amount": receipt["amount"],
         "currency": receipt["currency"],
         "standing_limit": receipt["standing_limit"],
-        "approval_required": receipt["approval_required"],
-        "approval_present": receipt["approval_present"],
+        "approval_required": receipt[
+            "approval_required"
+        ],
+        "approval_present": receipt[
+            "approval_present"
+        ],
         "approval_ref": receipt["approval_ref"],
-        "boundary_outcome": receipt["boundary_outcome"],
-        "boundary_reason": receipt["boundary_reason"],
+        "boundary_outcome": receipt[
+            "boundary_outcome"
+        ],
+        "boundary_reason": receipt[
+            "boundary_reason"
+        ],
         "effect_id": receipt["effect_id"],
-        "effect_disposition": receipt["effect_disposition"],
-        "effect_executed": receipt["effect_executed"],
-        "system_of_record_status": receipt["system_of_record_status"],
+        "effect_disposition": receipt[
+            "effect_disposition"
+        ],
+        "effect_executed": receipt[
+            "effect_executed"
+        ],
+        "system_of_record_status": receipt[
+            "system_of_record_status"
+        ],
         "digest": receipt["digest"],
     }
 
 
-def main():
-    output_dir = Path("playground/v04-replay-demo")
-    summary = run_replay_demo(output_dir)
+def _display_status(value: object) -> str:
+    return str(value).replace("_", " ").upper()
 
-    print("CAGE-lite v0.4 replay demo")
-    print(f"output_dir: {output_dir}")
-    print(f"held_receipt_id: {summary['held_receipt_id']}")
-    print(f"replay_receipt_id: {summary['replay_receipt_id']}")
+
+def _yes_no(value: object) -> str:
+    return "Yes" if bool(value) else "No"
+
+
+def _print_demo_summary(
+    summary: dict,
+    output_dir: Path,
+) -> None:
+    held = summary["held"]
+    replay = summary["replay"]
+
+    print("CAGE-lite v1 product preview")
+    print(f"Artifact folder: {output_dir}")
+    print(
+        "Held Warrant ID: "
+        f"{summary['held_receipt_id']}"
+    )
+    print(
+        "Replay Warrant ID: "
+        f"{summary['replay_receipt_id']}"
+    )
 
     print()
-    print("Held attempt")
-    print(f"boundary_outcome: {summary['held']['boundary_outcome']}")
-    print(f"effect_disposition: {summary['held']['effect_disposition']}")
-    print(f"effect_executed: {summary['held']['effect_executed']}")
-    print(f"system_of_record_status: {summary['held']['system_of_record_status']}")
+    print("Original held attempt")
+    print(
+        "Boundary outcome: "
+        f"{_display_status(held['boundary_outcome'])}"
+    )
+    print(
+        "Effect disposition: "
+        f"{_display_status(held['effect_disposition'])}"
+    )
+    print(
+        "Effect executed: "
+        f"{_yes_no(held['effect_executed'])}"
+    )
+    print(
+        "System of record: "
+        f"{_display_status(held['system_of_record_status'])}"
+    )
 
     print()
     print("Replay with approval")
-    print(f"boundary_outcome: {summary['replay']['boundary_outcome']}")
-    print(f"effect_disposition: {summary['replay']['effect_disposition']}")
-    print(f"effect_executed: {summary['replay']['effect_executed']}")
-    print(f"system_of_record_status: {summary['replay']['system_of_record_status']}")
-    print(f"replay_of_receipt_id: {summary['replay']['replay_of_receipt_id']}")
+    print(
+        "Boundary outcome: "
+        f"{_display_status(replay['boundary_outcome'])}"
+    )
+    print(
+        "Effect disposition: "
+        f"{_display_status(replay['effect_disposition'])}"
+    )
+    print(
+        "Effect executed: "
+        f"{_yes_no(replay['effect_executed'])}"
+    )
+    print(
+        "System of record: "
+        f"{_display_status(replay['system_of_record_status'])}"
+    )
+    print(
+        "Original Warrant ID: "
+        f"{replay['replay_of_receipt_id']}"
+    )
+
+
+def main() -> None:
+    output_dir = Path(
+        "playground/v04-replay-demo"
+    )
+    summary = run_replay_demo(output_dir)
+
+    _print_demo_summary(
+        summary,
+        output_dir,
+    )
 
 
 if __name__ == "__main__":
