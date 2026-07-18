@@ -76,6 +76,10 @@ button[kind="primary"]:hover {
     box-shadow: 0 7px 20px rgba(16, 24, 40, 0.035);
 }
 
+.cage-stacked-card {
+    margin-top: 0.85rem;
+}
+
 .cage-card.warn {
     border-color: #fedf89;
     background: #fffcf5;
@@ -169,6 +173,50 @@ button[kind="primary"]:hover {
     font-weight: 800;
     text-align: right;
     word-break: break-word;
+}
+.cage-integrity-card .cage-detail-row {
+    align-items: center;
+}
+
+.cage-hash-field {
+    padding: 0.55rem 0;
+    border-top: 1px solid #f0f2f5;
+}
+
+.cage-hash-label {
+    color: #667085;
+    font-size: 0.72rem;
+    font-weight: 700;
+    margin-bottom: 0.3rem;
+}
+
+.cage-hash-value {
+    color: #101828;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+        "Liberation Mono", "Courier New", monospace;
+    font-size: 0.67rem;
+    font-weight: 650;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.cage-integrity-detail {
+    margin-top: 0.45rem;
+    padding: 0.55rem 0.65rem;
+    border-radius: 10px;
+    background: #f8fafc;
+    color: #344054;
+    font-size: 0.72rem;
+    font-weight: 650;
+    line-height: 1.4;
+}
+
+.cage-integrity-note {
+    margin-top: 0.55rem;
+    color: #667085;
+    font-size: 0.68rem;
+    line-height: 1.45;
 }
 
 /* Consequence-boundary flow */
