@@ -4,28 +4,99 @@ from cage_lite.ui import app
 from cage_lite.ui.app_data import short_time
 
 
-def test_empty_overview_shows_controls(monkeypatch, tmp_path):
+def test_developer_controls_are_disabled_by_default(
+    monkeypatch,
+):
+    monkeypatch.delenv(
+        app.DEVELOPER_CONTROLS_ENV,
+        raising=False,
+    )
+
+    assert app.developer_controls_enabled() is False
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "1",
+        "true",
+        "TRUE",
+        "yes",
+        "on",
+        " On ",
+    ],
+)
+def test_developer_controls_accept_truthy_environment_values(
+    monkeypatch,
+    value,
+):
+    monkeypatch.setenv(
+        app.DEVELOPER_CONTROLS_ENV,
+        value,
+    )
+
+    assert app.developer_controls_enabled() is True
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "",
+        "0",
+        "false",
+        "no",
+        "off",
+        "random",
+    ],
+)
+def test_developer_controls_reject_non_truthy_values(
+    monkeypatch,
+    value,
+):
+    monkeypatch.setenv(
+        app.DEVELOPER_CONTROLS_ENV,
+        value,
+    )
+
+    assert app.developer_controls_enabled() is False
+
+
+def test_empty_overview_hides_controls_by_default(
+    monkeypatch,
+    tmp_path,
+):
     calls = []
 
     monkeypatch.setattr(
         app,
+        "developer_controls_enabled",
+        lambda: False,
+    )
+    monkeypatch.setattr(
+        app,
         "render_overview_empty",
-        lambda root: calls.append(("empty", root)),
+        lambda root, show_controls: calls.append(
+            (
+                "empty",
+                root,
+                show_controls,
+            )
+        ),
     )
     monkeypatch.setattr(
         app,
         "render_developer_controls",
-        lambda: calls.append(("controls", None)),
+        lambda: calls.append(("controls",)),
     )
     monkeypatch.setattr(
         app.st,
         "divider",
-        lambda: calls.append(("divider", None)),
+        lambda: calls.append(("divider",)),
     )
     monkeypatch.setattr(
         app.overview,
         "render",
-        lambda *args: calls.append(("overview", None)),
+        lambda *args: calls.append(("overview",)),
     )
 
     app.render_page(
@@ -37,37 +108,55 @@ def test_empty_overview_shows_controls(monkeypatch, tmp_path):
     )
 
     assert calls == [
-        ("empty", tmp_path),
-        ("divider", None),
-        ("controls", None),
+        (
+            "empty",
+            tmp_path,
+            False,
+        ),
     ]
 
 
-def test_overview_with_artifacts_shows_controls(
+def test_overview_with_artifacts_hides_controls_by_default(
     monkeypatch,
     tmp_path,
 ):
     calls = []
-    summary = {"scenario": "payment_replay"}
-    receipts = [{"receipt_id": "warrant-001"}]
-    effects = [{"receipt_id": "warrant-001"}]
 
+    summary = {
+        "scenario": "payment_replay",
+    }
+    receipts = [
+        {
+            "receipt_id": "warrant-001",
+        }
+    ]
+    effects = [
+        {
+            "receipt_id": "warrant-001",
+        }
+    ]
+
+    monkeypatch.setattr(
+        app,
+        "developer_controls_enabled",
+        lambda: False,
+    )
     monkeypatch.setattr(
         app.overview,
         "render",
         lambda summary, receipts, effects: calls.append(
-            ("overview", summary, receipts, effects)
+            (
+                "overview",
+                summary,
+                receipts,
+                effects,
+            )
         ),
     )
     monkeypatch.setattr(
         app,
         "render_developer_controls",
         lambda: calls.append(("controls",)),
-    )
-    monkeypatch.setattr(
-        app,
-        "render_overview_empty",
-        lambda root: calls.append(("empty", root)),
     )
     monkeypatch.setattr(
         app.st,
@@ -84,7 +173,130 @@ def test_overview_with_artifacts_shows_controls(
     )
 
     assert calls == [
-        ("overview", summary, receipts, effects),
+        (
+            "overview",
+            summary,
+            receipts,
+            effects,
+        ),
+    ]
+
+
+def test_empty_overview_shows_controls_in_developer_mode(
+    monkeypatch,
+    tmp_path,
+):
+    calls = []
+
+    monkeypatch.setattr(
+        app,
+        "developer_controls_enabled",
+        lambda: True,
+    )
+    monkeypatch.setattr(
+        app,
+        "render_overview_empty",
+        lambda root, show_controls: calls.append(
+            (
+                "empty",
+                root,
+                show_controls,
+            )
+        ),
+    )
+    monkeypatch.setattr(
+        app,
+        "render_developer_controls",
+        lambda: calls.append(("controls",)),
+    )
+    monkeypatch.setattr(
+        app.st,
+        "divider",
+        lambda: calls.append(("divider",)),
+    )
+
+    app.render_page(
+        page="Overview",
+        root=tmp_path,
+        summary={},
+        receipts=[],
+        effects=[],
+    )
+
+    assert calls == [
+        (
+            "empty",
+            tmp_path,
+            True,
+        ),
+        ("divider",),
+        ("controls",),
+    ]
+
+
+def test_overview_with_artifacts_shows_controls_in_developer_mode(
+    monkeypatch,
+    tmp_path,
+):
+    calls = []
+
+    summary = {
+        "scenario": "payment_replay",
+    }
+    receipts = [
+        {
+            "receipt_id": "warrant-001",
+        }
+    ]
+    effects = [
+        {
+            "receipt_id": "warrant-001",
+        }
+    ]
+
+    monkeypatch.setattr(
+        app,
+        "developer_controls_enabled",
+        lambda: True,
+    )
+    monkeypatch.setattr(
+        app.overview,
+        "render",
+        lambda summary, receipts, effects: calls.append(
+            (
+                "overview",
+                summary,
+                receipts,
+                effects,
+            )
+        ),
+    )
+    monkeypatch.setattr(
+        app,
+        "render_developer_controls",
+        lambda: calls.append(("controls",)),
+    )
+    monkeypatch.setattr(
+        app.st,
+        "divider",
+        lambda: calls.append(("divider",)),
+    )
+
+    app.render_page(
+        page="Overview",
+        root=tmp_path,
+        summary=summary,
+        receipts=receipts,
+        effects=effects,
+    )
+
+    assert calls == [
+        (
+            "overview",
+            summary,
+            receipts,
+            effects,
+        ),
         ("divider",),
         ("controls",),
     ]
@@ -106,6 +318,13 @@ def test_other_pages_do_not_show_developer_controls(
 ):
     calls = []
 
+    # Even when developer mode is enabled, controls belong only
+    # on the Overview page.
+    monkeypatch.setattr(
+        app,
+        "developer_controls_enabled",
+        lambda: True,
+    )
     monkeypatch.setattr(
         app,
         "render_developer_controls",
@@ -141,6 +360,123 @@ def test_other_pages_do_not_show_developer_controls(
     )
 
     assert calls == ["page"]
+
+
+def test_empty_overview_uses_product_message_by_default(
+    monkeypatch,
+    tmp_path,
+):
+    calls = []
+
+    monkeypatch.setattr(
+        app.overview,
+        "page_heading",
+        lambda title, subtitle: calls.append(
+            (
+                "heading",
+                title,
+                subtitle,
+            )
+        ),
+    )
+    monkeypatch.setattr(
+        app.st,
+        "info",
+        lambda message: calls.append(
+            (
+                "info",
+                message,
+            )
+        ),
+    )
+    monkeypatch.setattr(
+        app.st,
+        "write",
+        lambda message: calls.append(
+            (
+                "write",
+                message,
+            )
+        ),
+    )
+    monkeypatch.setattr(
+        app.st,
+        "caption",
+        lambda message: calls.append(
+            (
+                "caption",
+                message,
+            )
+        ),
+    )
+
+    app.render_overview_empty(
+        tmp_path,
+        show_developer_controls=False,
+    )
+
+    assert (
+        "info",
+        "No CAGE Warrants are available.",
+    ) in calls
+
+    assert (
+        "write",
+        "No artifact set has been loaded for this deployment.",
+    ) in calls
+
+    assert not any(
+        call[0] == "caption"
+        for call in calls
+    )
+
+    assert not any(
+        "Developer controls" in str(call)
+        for call in calls
+    )
+
+
+def test_empty_overview_explains_developer_controls_when_enabled(
+    monkeypatch,
+    tmp_path,
+):
+    messages = []
+
+    monkeypatch.setattr(
+        app.overview,
+        "page_heading",
+        lambda *args: None,
+    )
+    monkeypatch.setattr(
+        app.st,
+        "info",
+        lambda message: messages.append(message),
+    )
+    monkeypatch.setattr(
+        app.st,
+        "write",
+        lambda message: messages.append(message),
+    )
+    monkeypatch.setattr(
+        app.st,
+        "caption",
+        lambda message: messages.append(message),
+    )
+
+    app.render_overview_empty(
+        tmp_path,
+        show_developer_controls=True,
+    )
+
+    assert any(
+        "Use Developer controls below" in message
+        for message in messages
+    )
+
+    assert any(
+        str(tmp_path) in message
+        for message in messages
+    )
 
 
 def test_short_time_keeps_milliseconds():
@@ -238,6 +574,7 @@ def test_partial_artifact_load_shows_warning(monkeypatch):
     )
 
     assert len(calls) == 1
+
     message_type, message = calls[0]
 
     assert message_type == "warning"
@@ -279,6 +616,7 @@ def test_failed_artifact_load_shows_error(monkeypatch):
     )
 
     assert len(calls) == 1
+
     message_type, message = calls[0]
 
     assert message_type == "error"
@@ -293,8 +631,14 @@ def test_main_reports_artifact_issues_before_rendering_page(
 ):
     calls = []
 
-    summary = {"scenario": "payment_replay"}
-    receipts = [{"receipt_id": "warrant-valid"}]
+    summary = {
+        "scenario": "payment_replay",
+    }
+    receipts = [
+        {
+            "receipt_id": "warrant-valid",
+        }
+    ]
     effects = []
     issues = [
         {

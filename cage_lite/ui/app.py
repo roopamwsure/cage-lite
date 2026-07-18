@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import streamlit as st
@@ -21,6 +22,23 @@ PAGES = [
     "Replay",
     "Architecture",
 ]
+
+DEVELOPER_CONTROLS_ENV = "CAGE_LITE_SHOW_DEV_CONTROLS"
+TRUE_ENV_VALUES = {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+
+
+def developer_controls_enabled() -> bool:
+    value = os.getenv(
+        DEVELOPER_CONTROLS_ENV,
+        "",
+    )
+
+    return value.strip().lower() in TRUE_ENV_VALUES
 
 
 def render_navigation() -> str:
@@ -125,6 +143,7 @@ def render_pending_message() -> None:
             f"Could not generate replay demo: {error}"
         )
 
+
 def render_artifact_load_issues(
     summary: dict,
     receipts: list[dict],
@@ -146,14 +165,23 @@ def render_artifact_load_issues(
         artifact_type = str(
             issue.get("artifact_type") or "artifact"
         )
-        label = artifact_type.replace("_", " ").title()
+
+        label = artifact_type.replace(
+            "_",
+            " ",
+        ).title()
 
         file_name = str(
             issue.get("file_name") or "unknown file"
         )
+
         status = str(
             issue.get("status") or "error"
-        ).replace("_", " ").upper()
+        ).replace(
+            "_",
+            " ",
+        ).upper()
+
         message = str(
             issue.get("message")
             or "The artifact could not be loaded."
@@ -173,6 +201,7 @@ def render_artifact_load_issues(
             "Some artifacts could not be loaded. "
             "Valid artifacts are still shown."
         )
+
         st.warning(
             heading + "\n\n" + "\n".join(details)
         )
@@ -182,27 +211,42 @@ def render_artifact_load_issues(
         "Artifact loading failed. "
         "No usable artifacts were loaded."
     )
+
     st.error(
         heading + "\n\n" + "\n".join(details)
     )
 
-def render_overview_empty(root: Path) -> None:
+
+def render_overview_empty(
+    root: Path,
+    show_developer_controls: bool,
+) -> None:
     overview.page_heading(
         "Overview",
-        "Current boundary decision, effect proof, "
-        "recent runs, and replay status.",
+        (
+            "Latest boundary decision, original held flow, "
+            "recent runs, and replay status."
+        ),
     )
 
     st.info(
-        "No CAGE Warrants were found in the selected artifact folder."
+        "No CAGE Warrants are available."
     )
+
+    if show_developer_controls:
+        st.write(
+            "Use Developer controls below to generate the replay demo, "
+            "or select a folder containing existing CAGE-lite artifacts."
+        )
+
+        st.caption(
+            f"Current artifact folder: {root}"
+        )
+        return
 
     st.write(
-        "Use Developer controls below to generate the replay demo, "
-        "or select a folder containing existing CAGE-lite artifacts."
+        "No artifact set has been loaded for this deployment."
     )
-
-    st.caption(f"Current artifact folder: {root}")
 
 
 def render_page(
@@ -212,6 +256,8 @@ def render_page(
     receipts: list[dict],
     effects: list[dict],
 ) -> None:
+    show_developer_controls = developer_controls_enabled()
+
     if page == "Overview":
         if receipts:
             overview.render(
@@ -220,10 +266,14 @@ def render_page(
                 effects,
             )
         else:
-            render_overview_empty(root)
+            render_overview_empty(
+                root,
+                show_developer_controls,
+            )
 
-        st.divider()
-        render_developer_controls()
+        if show_developer_controls:
+            st.divider()
+            render_developer_controls()
 
     elif page == "Boundary Runs":
         boundary_runs.render(
@@ -247,7 +297,9 @@ def render_page(
         architecture.render()
 
     else:
-        st.error(f"Unknown application page: {page}")
+        st.error(
+            f"Unknown application page: {page}"
+        )
 
 
 def main() -> None:
