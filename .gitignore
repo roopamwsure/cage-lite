@@ -1,4 +1,4 @@
-# Python
+# Python bytecode
 __pycache__/
 *.py[cod]
 *$py.class
@@ -8,21 +8,29 @@ __pycache__/
 venv/
 env/
 
-# Environment files
+# Environment and local secrets
 .env
 .env.*
+!.env.example
+.streamlit/secrets.toml
 
-# Test/cache files
+# Test, coverage, and tool caches
 .pytest_cache/
 .coverage
+.coverage.*
+coverage.xml
 htmlcov/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
 
-# Build files
+# Build and package artifacts
 build/
 dist/
 *.egg-info/
 
-# IDE / OS files
+# IDE and operating-system files
 .vscode/
 .idea/
 .DS_Store
@@ -32,9 +40,6 @@ Thumbs.db
 *.log
 
 # Local demo output
-playground/receipts/
-
-playground/evidence/
-# Local demo output
-playground/
+playground/*
+!playground/.gitkeep
 playground-approved/
