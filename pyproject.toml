@@ -12,6 +12,11 @@ dependencies = [
   "streamlit>=1.37",
 ]
 
+[project.urls]
+Homepage = "https://github.com/roopamwsure/cage-lite"
+Repository = "https://github.com/roopamwsure/cage-lite"
+Issues = "https://github.com/roopamwsure/cage-lite/issues"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
