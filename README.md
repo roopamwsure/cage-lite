@@ -63,6 +63,25 @@ playground/v04-replay-demo/
 
 The Streamlit application loads those artifacts by default. Developer controls remain hidden unless they are explicitly enabled.
 
+## Examples
+
+The `examples/` directory contains smaller demonstrations of individual CAGE behaviors:
+
+- `payment_policy_demo.py` evaluates the payment policy and produces a held boundary decision without attempting an effect.
+- `payment_no_bind_demo.py` shows that a held action does not execute and records durable `NO_BIND` effect proof.
+- `payment_approval_demo.py` adds the required approval, admits the action, executes the protected effect, and records `BOUND` proof.
+- `payment_narrowed_demo.py` narrows the requested payment to the agent's permitted scope and records the scoped effect result.
+
+Run an example from the repository root:
+
+```powershell
+python .\examples\payment_no_bind_demo.py
+python .\examples\payment_approval_demo.py
+python .\examples\payment_narrowed_demo.py
+```
+
+The examples write local receipts, evidence, and effect records under `playground/`. That generated output is excluded from Git.
+
 ## Where CAGE fits
 
 CAGE does not replace agent runtimes, IAM, policy engines, guardrails, gateways, approval systems, or observability tools.
