@@ -38,6 +38,31 @@ The CAGE-lite dashboard shows the latest boundary decision, the original held ac
   >
 </p>
 
+## Quick start
+
+CAGE-lite requires Python 3.10 or later.
+
+From Windows PowerShell:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+
+python -m pip install --upgrade pip
+python -m pip install -e .
+
+python -m cage_lite.demo.payment_replay
+streamlit run cage_lite/ui/app.py
+```
+
+The replay demo creates one original `HELD` Warrant and one linked `ADMITTED` replay Warrant under:
+
+```text
+playground/v04-replay-demo/
+```
+
+The Streamlit application loads those artifacts by default. Developer controls remain hidden unless they are explicitly enabled.
+
 ## Where CAGE fits
 
 CAGE does not replace agent runtimes, IAM, policy engines, guardrails, gateways, approval systems, or observability tools.
