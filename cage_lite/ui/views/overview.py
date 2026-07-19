@@ -291,13 +291,6 @@ def render_recent_runs(
     receipts: list[dict],
     effects: list[dict],
 ) -> None:
-    st.markdown(
-        '<div class="cage-section-title">'
-        "Recent boundary runs"
-        "</div>",
-        unsafe_allow_html=True,
-    )
-
     recent_items = sorted_receipts(
         receipts,
     )[:3]
@@ -399,13 +392,6 @@ def render_latest_replay(
     admitted: dict | None,
     effects: list[dict],
 ) -> None:
-    st.markdown(
-        '<div class="cage-section-title">'
-        "Latest replay"
-        "</div>",
-        unsafe_allow_html=True,
-    )
-
     if not held or not admitted:
         st.info(
             "No complete held-to-admitted replay pair was found."
@@ -551,15 +537,30 @@ def render(
     recent_column, replay_column = st.columns(
         [1.25, 0.75],
         gap="medium",
+        vertical_alignment="top",
     )
 
     with recent_column:
+        st.markdown(
+            '<div class="cage-section-title">'
+            "Recent boundary runs"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+
         render_recent_runs(
             receipts,
             effects,
         )
 
     with replay_column:
+        st.markdown(
+            '<div class="cage-section-title">'
+            "Latest replay"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+
         render_latest_replay(
             held,
             admitted,
