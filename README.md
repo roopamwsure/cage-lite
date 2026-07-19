@@ -26,6 +26,18 @@ CAGE adds that final assurance step before the action becomes a binding business
 
 CAGE-lite is currently a **v1 product preview**. The Python package version is `0.1.0`, and the current CAGE Warrant schema is version `0.4`.
 
+## Product preview
+
+The CAGE-lite dashboard shows the latest boundary decision, the original held action, recent boundary runs, and the result of replaying the action after the missing evidence is supplied.
+
+<p align="center">
+  <img
+    src="docs/images/cage-lite-overview.png"
+    alt="CAGE-lite product overview showing held and admitted payment decisions"
+    width="100%"
+  >
+</p>
+
 ## Where CAGE fits
 
 CAGE does not replace agent runtimes, IAM, policy engines, guardrails, gateways, approval systems, or observability tools.
@@ -61,3 +73,40 @@ CAGE prebind boundary
         |
         v
 CAGE Warrant and effect proof
+```
+
+## CAGE Warrant
+
+Each evaluated action produces a CAGE Warrant containing decision proof, effect proof, evidence references, replay linkage, and integrity information.
+
+The Warrant distinguishes between deciding that an action may proceed and proving what happened after that decision.
+
+<p align="center">
+  <img
+    src="docs/images/cage-lite-warrant.png"
+    alt="CAGE Warrant showing decision proof, effect proof, and verified digest integrity"
+    width="100%"
+  >
+</p>
+
+## Held-to-admitted replay
+
+The included demo begins with a USD 75,000 vendor payment that exceeds the agent's USD 50,000 direct standing limit.
+
+Without the required human approval, CAGE holds the action before effect execution:
+
+- boundary: `HELD`;
+- effect: `NO BIND`;
+- system of record: `NOT WRITTEN`.
+
+The action is then replayed after approval evidence is added. The action, amount, standing limit, and policy remain unchanged. Only the approval state changes.
+
+The replay is admitted, the effect is allowed to bind, and the original held Warrant remains preserved and linked to the replay Warrant.
+
+<p align="center">
+  <img
+    src="docs/images/cage-lite-replay.png"
+    alt="CAGE-lite replay comparison showing approval missing to present and held to admitted"
+    width="100%"
+  >
+</p>
