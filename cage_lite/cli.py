@@ -134,7 +134,7 @@ def main():
     parser.add_argument(
         "--replay-of-receipt-id",
         default=None,
-        help="Receipt id for the earlier held attempt.",
+        help="Warrant ID for the earlier held attempt.",
     )
     parser.add_argument(
         "--output-dir",

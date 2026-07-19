@@ -1058,7 +1058,7 @@ def render_empty(root: Path) -> None:
     st.info("No warrants were found yet. Open Demo controls and generate the replay demo.")
     st.code(
         "python -m cage_lite.demo.payment_replay\n"
-        "streamlit run cage_lite\\ui\\receipt_viewer_v1.py",
+        "streamlit run cage_lite\\ui\\app.py",
         language="powershell",
     )
     st.caption(f"Current artifact folder: {root}")
