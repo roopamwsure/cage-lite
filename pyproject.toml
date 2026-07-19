@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "cage-lite"
 version = "0.1.0"
@@ -7,7 +11,11 @@ authors = [
 ]
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "Apache-2.0" }
+license = "Apache-2.0"
+license-files = [
+  "LICENSE",
+  "NOTICE",
+]
 dependencies = [
   "streamlit>=1.37",
 ]
@@ -20,7 +28,15 @@ Issues = "https://github.com/roopamwsure/cage-lite/issues"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
+[tool.setuptools]
+include-package-data = true
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["cage_lite*"]
 exclude = ["tests*", "examples*", "docs*", "playground*"]
+
+[tool.setuptools.package-data]
+"cage_lite.ui" = [
+  "assets/*.png",
+]
