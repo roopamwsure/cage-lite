@@ -42,6 +42,19 @@ The CAGE-lite dashboard shows the latest boundary decision, the original held ac
 
 CAGE-lite requires Python 3.10 or later.
 
+### Install from PyPI
+
+In an active Python 3.10 or later environment:
+
+```bash
+python -m pip install cage-lite
+python -m cage_lite.demo.payment_replay
+```
+
+This runs the packaged payment replay and writes the generated artifacts under `playground/v04-replay-demo/` in the current working directory.
+
+To run the Streamlit dashboard, inspect the examples, or contribute changes, install CAGE-lite from source.
+
 ### Windows PowerShell
 
 ```powershell
