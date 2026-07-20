@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cage-lite"
-version = "0.1.0"
+version = "0.1.1"
 description = "CAGE-lite: lightweight prebind assurance framework for agentic actions"
 authors = [
   { name = "Roopam Sure" }

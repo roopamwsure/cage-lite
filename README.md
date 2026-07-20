@@ -24,7 +24,7 @@ Before an agent releases a payment, grants access, approves a transaction, updat
 
 CAGE adds that final assurance step before the action becomes a binding business consequence.
 
-CAGE-lite is currently a **v1 product preview**. The Python package version is `0.1.0`, and the current CAGE Warrant schema is version `0.4`.
+CAGE-lite is currently a **v1 product preview**. The Python package version is `0.1.1`, and the current CAGE Warrant schema is version `0.4`.
 
 ## Product preview
 

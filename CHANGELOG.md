@@ -5,12 +5,23 @@ This file records notable user-facing changes to CAGE-lite.
 CAGE-lite uses separate version labels for the product, Python package, and CAGE Warrant schema:
 
 - product: CAGE-lite v1 product preview;
-- Python package: `0.1.0`;
+- Python package: `0.1.1`;
 - CAGE Warrant schema: `0.4`.
 
 These versions serve different purposes and should not be treated as interchangeable.
 
 ## Unreleased
+
+## 0.1.1 — 2026-07-21 — PyPI presentation and release hardening
+
+### Fixed
+
+- Corrected README image rendering on PyPI by using absolute HTTPS image URLs.
+
+### Changed
+
+- Added a direct PyPI installation path to the Quick Start.
+- Reworked the release workflow to build and verify immutable tagged distributions, publish through TestPyPI first, and use Trusted Publishing attestations.
 
 ## 0.1.0 — 2026-07-20 — CAGE-lite v1 product preview
 
