@@ -10,7 +10,9 @@ CAGE-lite uses separate version labels for the product, Python package, and CAGE
 
 These versions serve different purposes and should not be treated as interchangeable.
 
-## Unreleased — CAGE-lite v1 product preview
+## Unreleased
+
+## 0.1.0 — 2026-07-20 — CAGE-lite v1 product preview
 
 ### Added
 
