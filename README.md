@@ -1,6 +1,6 @@
 <p align="center">
   <img
-    src="cage_lite/ui/assets/cage_logo.png"
+    src="https://raw.githubusercontent.com/roopamwsure/cage-lite/v0.1.0/cage_lite/ui/assets/cage_logo.png"
     alt="CAGE logo"
     width="170"
   >
@@ -32,7 +32,7 @@ The CAGE-lite dashboard shows the latest boundary decision, the original held ac
 
 <p align="center">
   <img
-    src="docs/images/cage-lite-overview.png"
+    src="https://raw.githubusercontent.com/roopamwsure/cage-lite/v0.1.0/docs/images/cage-lite-overview.png"
     alt="CAGE-lite product overview showing held and admitted payment decisions"
     width="100%"
   >
@@ -122,7 +122,7 @@ Those systems produce important signals. CAGE consumes those signals and evaluat
 
 <p align="center">
   <img
-    src="docs/images/cage-architecture.png"
+    src="https://raw.githubusercontent.com/roopamwsure/cage-lite/v0.1.0/docs/images/cage-architecture.png"
     alt="CAGE prebind assurance architecture"
     width="100%"
   >
@@ -159,7 +159,7 @@ The Warrant distinguishes between deciding that an action may proceed and provin
 
 <p align="center">
   <img
-    src="docs/images/cage-lite-warrant.png"
+    src="https://raw.githubusercontent.com/roopamwsure/cage-lite/v0.1.0/docs/images/cage-lite-warrant.png"
     alt="CAGE Warrant showing decision proof, effect proof, and verified digest integrity"
     width="100%"
   >
@@ -181,7 +181,7 @@ The replay is admitted, the effect is allowed to bind, and the original held War
 
 <p align="center">
   <img
-    src="docs/images/cage-lite-replay.png"
+    src="https://raw.githubusercontent.com/roopamwsure/cage-lite/v0.1.0/docs/images/cage-lite-replay.png"
     alt="CAGE-lite replay comparison showing approval missing to present and held to admitted"
     width="100%"
   >
