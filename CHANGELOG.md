@@ -12,7 +12,7 @@ These versions serve different purposes and should not be treated as interchange
 
 ## Unreleased
 
-## 0.1.1 — 2026-07-21 — PyPI presentation and release hardening
+## 0.1.1 — 2026-07-20 — PyPI presentation and release hardening
 
 ### Fixed
 
