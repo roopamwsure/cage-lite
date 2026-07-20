@@ -5,6 +5,7 @@ from cage_lite.core.approval import ApprovalRecord
 from cage_lite.core.boundary import evaluate_prebind
 from cage_lite.core.effect import execute_if_admitted
 from cage_lite.core.evidence import EvidenceRecord, write_evidence
+from cage_lite.core.ledger import FileLedger
 from cage_lite.core.standing import AgentStanding
 from cage_lite.policies.payment import evaluate_payment
 
@@ -17,7 +18,9 @@ def send_payment_to_bank():
 
 
 if __name__ == "__main__":
-    evidence_folder = Path("playground/evidence")
+    output_dir = Path("playground")
+    evidence_folder = output_dir / "evidence"
+    ledger = FileLedger(output_dir)
 
     payment_evidence = EvidenceRecord.create(
         evidence_type="payment_request",
@@ -70,7 +73,7 @@ if __name__ == "__main__":
         action=action,
         standing=standing,
         policy=evaluate_payment,
-        receipt_folder=Path("playground/receipts"),
+        receipt_folder=output_dir / "receipts",
         policy_context={
             "approval": approval,
         },
@@ -79,6 +82,8 @@ if __name__ == "__main__":
     effect_result = execute_if_admitted(
         decision=decision,
         effect=send_payment_to_bank,
+        tool_name="vendor_payment_api",
+        ledger=ledger,
     )
 
     print("CAGE decision:")
