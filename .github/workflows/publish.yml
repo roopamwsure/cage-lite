@@ -3,22 +3,18 @@ name: Publish CAGE-lite
 on:
   workflow_dispatch:
     inputs:
-      target:
-        description: Package index to publish to
+      version:
+        description: Package version to release, for example 0.1.1
         required: true
-        type: choice
-        default: testpypi
-        options:
-          - testpypi
-          - pypi
+        type: string
 
 concurrency:
-  group: publish-cage-lite
+  group: publish-cage-lite-${{ inputs.version }}
   cancel-in-progress: false
 
 jobs:
-  prepare-v0-1-0:
-    name: Prepare verified v0.1.0 distributions
+  prepare-release:
+    name: Build and verify v${{ inputs.version }}
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
@@ -26,74 +22,327 @@ jobs:
       contents: read
 
     steps:
-      - name: Download v0.1.0 release assets
+      - name: Check out release tag
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: v${{ inputs.version }}
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.13"
+
+      - name: Validate release version and tag
         env:
-          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
 
-          mkdir -p release-assets dist
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Version must use the form X.Y.Z."
+            exit 1
+          fi
 
-          gh release download v0.1.0 \
-            --repo "$GITHUB_REPOSITORY" \
-            --dir release-assets \
-            --pattern "cage_lite-0.1.0-py3-none-any.whl" \
-            --pattern "cage_lite-0.1.0.tar.gz" \
-            --pattern "SHA256SUMS.txt"
+          actual_tag="$(git describe --tags --exact-match)"
+          expected_tag="v${VERSION}"
 
-      - name: Verify release artifact hashes
+          if [[ "$actual_tag" != "$expected_tag" ]]; then
+            echo "Expected tag $expected_tag but checked out $actual_tag."
+            exit 1
+          fi
+
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          import tomllib
+
+          version = os.environ["VERSION"]
+
+          with Path("pyproject.toml").open("rb") as handle:
+              project = tomllib.load(handle)["project"]
+
+          configured_version = project["version"]
+
+          if configured_version != version:
+              raise SystemExit(
+                  "pyproject.toml version does not match the requested "
+                  f"release: {configured_version!r} != {version!r}"
+              )
+
+          print(f"Verified package version {configured_version}")
+          PY
+
+      - name: Install package and release validation tools
         run: |
           set -euo pipefail
 
-          cat > expected-sha256sums.txt <<'EOF'
-          2f82d54fa650291671800d1390259f3f668abe9901a0a2374051b87a682f0b84  cage_lite-0.1.0.tar.gz
-          2e5de3fb8c9671f1d1163153d65cab86d3ea81fc76177f526d3d2512966da4e3  cage_lite-0.1.0-py3-none-any.whl
-          EOF
+          python -m pip install --upgrade pip
+          python -m pip install pytest build twine
+          python -m pip install .
 
-          tr -d '\r' \
-            < release-assets/SHA256SUMS.txt \
-            > release-assets/SHA256SUMS.normalized.txt
+      - name: Verify installed package
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
 
-          diff \
-            -u \
-            expected-sha256sums.txt \
-            release-assets/SHA256SUMS.normalized.txt
+          python - <<'PY'
+          import os
+          from importlib.metadata import version
 
-          (
-            cd release-assets
-            sha256sum --check ../expected-sha256sums.txt
+          expected = os.environ["VERSION"]
+          installed = version("cage-lite")
+
+          if installed != expected:
+              raise SystemExit(
+                  f"Installed version {installed!r} does not match "
+                  f"expected version {expected!r}"
+              )
+
+          print(f"Verified installed cage-lite {installed}")
+          PY
+
+          python -c "import cage_lite"
+          python -c "import cage_lite.core.receipt"
+          python -c "import cage_lite.ui.app_data"
+
+      - name: Run test suite
+        run: python -m pytest -q
+
+      - name: Build distributions
+        run: |
+          set -euo pipefail
+
+          rm -rf dist build release-bundle
+          find . -maxdepth 1 -type d -name "*.egg-info" -exec rm -rf {} +
+
+          python -m build
+          python -m twine check dist/*
+
+      - name: Verify distribution contents and metadata
+        env:
+          VERSION: ${{ inputs.version }}
+        shell: python
+        run: |
+          from pathlib import Path
+          import os
+          import re
+          import tarfile
+          import zipfile
+
+          version = os.environ["VERSION"]
+          dist = Path("dist")
+
+          wheel = dist / f"cage_lite-{version}-py3-none-any.whl"
+          source_distribution = dist / f"cage_lite-{version}.tar.gz"
+
+          actual_files = sorted(
+              path
+              for path in dist.iterdir()
+              if path.is_file()
           )
 
-          cp \
-            release-assets/cage_lite-0.1.0-py3-none-any.whl \
-            dist/
+          expected_files = sorted(
+              [
+                  wheel,
+                  source_distribution,
+              ]
+          )
 
-          cp \
-            release-assets/cage_lite-0.1.0.tar.gz \
-            dist/
+          if actual_files != expected_files:
+              names = ", ".join(path.name for path in actual_files)
+              raise SystemExit(
+                  "Expected exactly one wheel and one source "
+                  f"distribution. Found: {names}"
+              )
 
-          test "$(find dist -maxdepth 1 -type f | wc -l)" -eq 2
+          with zipfile.ZipFile(wheel) as archive:
+              wheel_files = set(archive.namelist())
 
-          ls -l dist
+              metadata_files = [
+                  name
+                  for name in wheel_files
+                  if name.endswith(".dist-info/METADATA")
+              ]
+
+              if len(metadata_files) != 1:
+                  raise SystemExit(
+                      "Wheel must contain exactly one METADATA file."
+                  )
+
+              metadata = archive.read(
+                  metadata_files[0]
+              ).decode("utf-8")
+
+          required_wheel_files = {
+              "cage_lite/ui/assets/cage_logo.png",
+              "cage_lite/ui/app.py",
+              "cage_lite/ui/receipt_viewer_v1.py",
+          }
+
+          missing_wheel_files = (
+              required_wheel_files - wheel_files
+          )
+
+          if missing_wheel_files:
+              missing = ", ".join(
+                  sorted(missing_wheel_files)
+              )
+              raise SystemExit(
+                  f"Wheel is missing required files: {missing}"
+              )
+
+          if not any(
+              name.endswith(".dist-info/licenses/LICENSE")
+              for name in wheel_files
+          ):
+              raise SystemExit(
+                  "Wheel does not contain LICENSE."
+              )
+
+          if not any(
+              name.endswith(".dist-info/licenses/NOTICE")
+              for name in wheel_files
+          ):
+              raise SystemExit(
+                  "Wheel does not contain NOTICE."
+              )
+
+          if f"\nVersion: {version}\n" not in (
+              f"\n{metadata}\n"
+          ):
+              raise SystemExit(
+                  "Wheel metadata contains an unexpected version."
+              )
+
+          image_sources = re.findall(
+              r'<img\b[^>]*\bsrc="([^"]+)"',
+              metadata,
+              flags=re.IGNORECASE | re.DOTALL,
+          )
+
+          if len(image_sources) != 5:
+              raise SystemExit(
+                  "Expected five README image references in "
+                  f"package metadata, found {len(image_sources)}."
+              )
+
+          relative_sources = [
+              source
+              for source in image_sources
+              if not source.startswith("https://")
+          ]
+
+          if relative_sources:
+              bad_sources = ", ".join(relative_sources)
+              raise SystemExit(
+                  "Package metadata contains non-HTTPS image "
+                  f"references: {bad_sources}"
+              )
+
+          with tarfile.open(
+              source_distribution,
+              "r:gz",
+          ) as archive:
+              source_files = set(archive.getnames())
+
+              readme_members = [
+                  member
+                  for member in archive.getmembers()
+                  if member.name.endswith("/README.md")
+              ]
+
+              if len(readme_members) != 1:
+                  raise SystemExit(
+                      "Source distribution must contain exactly "
+                      "one README.md."
+                  )
+
+              readme_file = archive.extractfile(
+                  readme_members[0]
+              )
+
+              if readme_file is None:
+                  raise SystemExit(
+                      "Unable to read README.md from source "
+                      "distribution."
+                  )
+
+              source_readme = readme_file.read().decode(
+                  "utf-8"
+              )
+
+          if not any(
+              name.endswith("/LICENSE")
+              for name in source_files
+          ):
+              raise SystemExit(
+                  "Source distribution does not contain LICENSE."
+              )
+
+          if not any(
+              name.endswith("/NOTICE")
+              for name in source_files
+          ):
+              raise SystemExit(
+                  "Source distribution does not contain NOTICE."
+              )
+
+          source_image_references = re.findall(
+              r'<img\b[^>]*\bsrc="([^"]+)"',
+              source_readme,
+              flags=re.IGNORECASE | re.DOTALL,
+          )
+
+          if len(source_image_references) != 5:
+              raise SystemExit(
+                  "Expected five README image references in "
+                  "the source distribution."
+              )
+
+          if any(
+              not source.startswith("https://")
+              for source in source_image_references
+          ):
+              raise SystemExit(
+                  "Source distribution README contains a "
+                  "non-HTTPS image reference."
+              )
+
+          print(f"Verified {wheel.name}")
+          print(f"Verified {source_distribution.name}")
+          print("Verified five absolute HTTPS README images")
+
+      - name: Prepare release bundle and checksums
+        run: |
+          set -euo pipefail
+
+          mkdir -p release-bundle/dist
+
+          cp dist/*.whl release-bundle/dist/
+          cp dist/*.tar.gz release-bundle/dist/
+
+          (
+            cd release-bundle/dist
+            sha256sum *.whl *.tar.gz > ../SHA256SUMS.txt
+          )
+
+          cat release-bundle/SHA256SUMS.txt
 
       - name: Store verified distributions
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: cage-lite-0.1.0-distributions
-          path: |
-            dist/cage_lite-0.1.0-py3-none-any.whl
-            dist/cage_lite-0.1.0.tar.gz
+          name: cage-lite-${{ inputs.version }}-distributions
+          path: release-bundle/
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 7
           compression-level: 0
 
   publish-testpypi:
-    name: Publish v0.1.0 to TestPyPI
-    if: |
-      github.ref == 'refs/heads/main' &&
-      inputs.target == 'testpypi'
+    name: Publish v${{ inputs.version }} to TestPyPI
     needs:
-      - prepare-v0-1-0
+      - prepare-release
 
     runs-on: ubuntu-latest
 
@@ -109,41 +358,34 @@ jobs:
       - name: Retrieve verified distributions
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: cage-lite-0.1.0-distributions
-          path: dist/
+          name: cage-lite-${{ inputs.version }}-distributions
+          path: release/
 
-      - name: Reverify distributions before publication
+      - name: Reverify distributions before TestPyPI
         run: |
           set -euo pipefail
 
-          cat > expected-sha256sums.txt <<'EOF'
-          2f82d54fa650291671800d1390259f3f668abe9901a0a2374051b87a682f0b84  cage_lite-0.1.0.tar.gz
-          2e5de3fb8c9671f1d1163153d65cab86d3ea81fc76177f526d3d2512966da4e3  cage_lite-0.1.0-py3-none-any.whl
-          EOF
-
           (
-            cd dist
-            sha256sum --check ../expected-sha256sums.txt
+            cd release/dist
+            sha256sum --check ../SHA256SUMS.txt
           )
 
-          test "$(find dist -maxdepth 1 -type f | wc -l)" -eq 2
+          test "$(find release/dist -maxdepth 1 -type f | wc -l)" -eq 2
 
-          ls -l dist
+          ls -l release/dist
 
       - name: Publish package distributions to TestPyPI
         uses: pypa/gh-action-pypi-publish@ba38be9e461d3875417946c167d0b5f3d385a247 # v1.14.1
         with:
           repository-url: https://test.pypi.org/legacy/
-          packages-dir: dist/
+          packages-dir: release/dist/
           print-hash: true
-          attestations: false
+          attestations: true
+
   publish-pypi:
-    name: Publish v0.1.0 to PyPI
-    if: |
-      github.ref == 'refs/heads/main' &&
-      inputs.target == 'pypi'
+    name: Publish v${{ inputs.version }} to PyPI
     needs:
-      - prepare-v0-1-0
+      - publish-testpypi
 
     runs-on: ubuntu-latest
 
@@ -156,33 +398,28 @@ jobs:
       id-token: write
 
     steps:
-      - name: Retrieve verified distributions
+      - name: Retrieve the TestPyPI-verified distributions
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: cage-lite-0.1.0-distributions
-          path: dist/
+          name: cage-lite-${{ inputs.version }}-distributions
+          path: release/
 
-      - name: Reverify distributions before publication
+      - name: Reverify distributions before PyPI
         run: |
           set -euo pipefail
 
-          cat > expected-sha256sums.txt <<'EOF'
-          2f82d54fa650291671800d1390259f3f668abe9901a0a2374051b87a682f0b84  cage_lite-0.1.0.tar.gz
-          2e5de3fb8c9671f1d1163153d65cab86d3ea81fc76177f526d3d2512966da4e3  cage_lite-0.1.0-py3-none-any.whl
-          EOF
-
           (
-            cd dist
-            sha256sum --check ../expected-sha256sums.txt
+            cd release/dist
+            sha256sum --check ../SHA256SUMS.txt
           )
 
-          test "$(find dist -maxdepth 1 -type f | wc -l)" -eq 2
+          test "$(find release/dist -maxdepth 1 -type f | wc -l)" -eq 2
 
-          ls -l dist
+          ls -l release/dist
 
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@ba38be9e461d3875417946c167d0b5f3d385a247 # v1.14.1
         with:
-          packages-dir: dist/
+          packages-dir: release/dist/
           print-hash: true
-          attestations: false
+          attestations: true
