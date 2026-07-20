@@ -14,7 +14,7 @@
 
 > Agent platforms govern how agents run. CAGE governs whether agent actions are allowed to become business consequences.
 
-CAGE-lite is my open-source implementation of the CAGE framework: **Control Assurance Governance Evaluation**.
+CAGE-lite is my open-source reference implementation of the CAGE framework: **Control Assurance Governance Evaluation**.
 
 The project started with a simple question:
 
@@ -42,9 +42,12 @@ The CAGE-lite dashboard shows the latest boundary decision, the original held ac
 
 CAGE-lite requires Python 3.10 or later.
 
-From Windows PowerShell:
+### Windows PowerShell
 
 ```powershell
+git clone https://github.com/roopamwsure/cage-lite.git
+cd .\cage-lite
+
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 
@@ -52,7 +55,23 @@ python -m pip install --upgrade pip
 python -m pip install -e .
 
 python -m cage_lite.demo.payment_replay
-streamlit run cage_lite/ui/app.py
+python -m streamlit run cage_lite/ui/app.py
+```
+
+### macOS and Linux
+
+```bash
+git clone https://github.com/roopamwsure/cage-lite.git
+cd cage-lite
+
+python3 -m venv .venv
+source .venv/bin/activate
+
+python -m pip install --upgrade pip
+python -m pip install -e .
+
+python -m cage_lite.demo.payment_replay
+python -m streamlit run cage_lite/ui/app.py
 ```
 
 The replay demo creates one original `HELD` Warrant and one linked `ADMITTED` replay Warrant under:
@@ -75,18 +94,18 @@ The `examples/` directory contains smaller demonstrations of individual CAGE beh
 Run an example from the repository root:
 
 ```powershell
-python .\examples\payment_no_bind_demo.py
-python .\examples\payment_approval_demo.py
-python .\examples\payment_narrowed_demo.py
+python examples/payment_no_bind_demo.py
+python examples/payment_approval_demo.py
+python examples/payment_narrowed_demo.py
 ```
 
-The examples write local receipts, evidence, and effect records under `playground/`. That generated output is excluded from Git.
+The examples write local CAGE Warrants, evidence records, and effect records under `playground/`. The generated output is excluded from Git.
 
 ## Where CAGE fits
 
-CAGE does not replace agent runtimes, IAM, policy engines, guardrails, gateways, approval systems, or observability tools.
+CAGE does not replace agent runtimes, IAM, policy engines, guardrails, gateways, approval systems, observability platforms, or agent evaluation frameworks.
 
-Those systems produce important signals. CAGE consumes those signals and evaluates whether the proposed action should be allowed to cross the business consequence boundary.
+Those systems produce important signals. CAGE consumes those signals and evaluates whether a proposed action should be allowed to cross the business consequence boundary.
 
 <p align="center">
   <img
@@ -140,8 +159,8 @@ The included demo begins with a USD 75,000 vendor payment that exceeds the agent
 Without the required human approval, CAGE holds the action before effect execution:
 
 - boundary: `HELD`;
-- effect: `NO BIND`;
-- system of record: `NOT WRITTEN`.
+- effect: `NO_BIND`;
+- system of record: `NOT_WRITTEN`.
 
 The action is then replayed after approval evidence is added. The action, amount, standing limit, and policy remain unchanged. Only the approval state changes.
 
@@ -154,3 +173,16 @@ The replay is admitted, the effect is allowed to bind, and the original held War
     width="100%"
   >
 </p>
+
+## Project links
+
+- [CAGE-lite v0.1.0 product preview](https://github.com/roopamwsure/cage-lite/releases/tag/v0.1.0)
+- [CAGE-1 paper](https://roopamwsure.github.io/publications/cage-1/CAGE-1_Control_Assurance_Governance_Evaluation.pdf)
+- [Changelog](CHANGELOG.md)
+- [Contributing guide](CONTRIBUTING.md)
+- [Security policy](SECURITY.md)
+- [Report an issue or request a feature](https://github.com/roopamwsure/cage-lite/issues)
+
+## License
+
+CAGE-lite is licensed under the [Apache License 2.0](LICENSE).
