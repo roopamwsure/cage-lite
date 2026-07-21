@@ -5,12 +5,32 @@ This file records notable user-facing changes to CAGE-lite.
 CAGE-lite uses separate version labels for the product, Python package, and CAGE Warrant schema:
 
 - product: CAGE-lite v1 product preview;
-- Python package: `0.1.1`;
+- Python package: `0.1.2`;
 - CAGE Warrant schema: `0.4`.
 
 These versions serve different purposes and should not be treated as interchangeable.
 
 ## Unreleased
+
+## 0.1.2 - 2026-07-21 - Hosted demo and public launch preparation
+
+### Added
+
+- Automatic hosted-demo bootstrap when the standard replay artifacts are not
+  already available.
+- Public links to the live demo, GitHub repository, PyPI package, and CAGE-1
+  paper in the product interface and package metadata.
+- Tests covering public project links and hosted-demo startup behavior.
+
+### Changed
+
+- Aligned the README and product interface with the CAGE-1 positioning of
+  Prebind Assurance at the business consequence boundary.
+- Updated the README for public launch with clearer hosted-demo, installation,
+  release, and project links.
+- Updated deployment dependencies and package metadata for the hosted
+  Streamlit application.
+
 
 ## 0.1.1 — 2026-07-20 — PyPI presentation and release hardening
 

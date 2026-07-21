@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cage-lite"
-version = "0.1.1"
+version = "0.1.2"
 description = "Open-source reference implementation for CAGE Prebind Assurance at the business consequence boundary"
 authors = [
   { name = "Roopam Sure" }
