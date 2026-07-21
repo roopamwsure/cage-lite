@@ -370,6 +370,33 @@ footer {visibility: hidden;}
     box-shadow: 0 16px 42px rgba(16, 24, 40, 0.075);
 }
 
+.brand-links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+    margin-top: 0.45rem;
+    color: #667085;
+    font-size: 0.8rem;
+}
+
+.brand-link {
+    color: #344054;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.brand-link:hover {
+    color: #067647;
+    text-decoration: underline;
+}
+
+.brand-link:focus-visible {
+    border-radius: 3px;
+    outline: 2px solid #12b76a;
+    outline-offset: 2px;
+}
+
 .hero-grid {
     display: grid;
     grid-template-columns: 1.2fr 0.8fr;
@@ -791,6 +818,19 @@ def render_header() -> None:
         'Prebind assurance for AI-agent actions at the '
         'business consequence boundary.'
         '</div>'
+        '<nav class="brand-links" aria-label="Project links">'
+        '<a class="brand-link" '
+        'href="https://github.com/roopamwsure/cage-lite" '
+        'target="_blank" rel="noopener noreferrer">GitHub</a>'
+        '<span aria-hidden="true">&middot;</span>'
+        '<a class="brand-link" '
+        'href="https://arxiv.org/abs/2607.03510" '
+        'target="_blank" rel="noopener noreferrer">CAGE-1</a>'
+        '<span aria-hidden="true">&middot;</span>'
+        '<a class="brand-link" '
+        'href="https://pypi.org/project/cage-lite/" '
+        'target="_blank" rel="noopener noreferrer">PyPI</a>'
+        '</nav>'
         '</div>'
         '</div>'
         '</div>'
