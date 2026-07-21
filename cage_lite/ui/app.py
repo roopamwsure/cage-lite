@@ -31,6 +31,12 @@ TRUE_ENV_VALUES = {
     "on",
 }
 
+EXPECTED_MISSING_ARTIFACTS = {
+    ("summary", "demo_summary.json"),
+    ("warrant", "receipts"),
+    ("effect", "effects"),
+}
+
 
 def developer_controls_enabled() -> bool:
     value = os.getenv(
@@ -72,6 +78,85 @@ def artifact_root() -> Path:
 
     return Path(value)
 
+
+
+def generate_replay_demo(output_dir: Path) -> dict:
+    from cage_lite.demo.payment_replay import run_replay_demo
+
+    return run_replay_demo(output_dir)
+
+
+def should_bootstrap_demo(
+    summary: dict,
+    receipts: list[dict],
+    effects: list[dict],
+    issues: list[dict[str, str]],
+) -> bool:
+    """Return True only when the complete artifact set is absent."""
+
+    if summary or receipts or effects:
+        return False
+
+    if len(issues) != len(EXPECTED_MISSING_ARTIFACTS):
+        return False
+
+    if any(issue.get("status") != "missing" for issue in issues):
+        return False
+
+    missing_artifacts = {
+        (
+            str(issue.get("artifact_type") or ""),
+            str(issue.get("file_name") or ""),
+        )
+        for issue in issues
+    }
+
+    return missing_artifacts == EXPECTED_MISSING_ARTIFACTS
+
+
+def load_artifacts_for_app(
+    root: Path,
+) -> tuple[
+    dict,
+    list[dict],
+    list[dict],
+    list[dict[str, str]],
+]:
+    summary, receipts, effects, issues = (
+        load_artifacts_with_issues(root)
+    )
+
+    if not should_bootstrap_demo(
+        summary,
+        receipts,
+        effects,
+        issues,
+    ):
+        return summary, receipts, effects, issues
+
+    try:
+        generate_replay_demo(root)
+    except Exception as exc:
+        summary, receipts, effects, issues = (
+            load_artifacts_with_issues(root)
+        )
+
+        issues.append(
+            {
+                "artifact_type": "demo_generation",
+                "file_name": root.name or str(root),
+                "path": str(root),
+                "status": "generation_failed",
+                "message": (
+                    "Could not generate the default replay demo: "
+                    f"{exc}"
+                ),
+            }
+        )
+
+        return summary, receipts, effects, issues
+
+    return load_artifacts_with_issues(root)
 
 def render_developer_controls() -> None:
     with st.expander("Developer controls"):
@@ -311,7 +396,7 @@ def main() -> None:
     root = artifact_root()
 
     summary, receipts, effects, issues = (
-        load_artifacts_with_issues(root)
+        load_artifacts_for_app(root)
     )
 
     render_pending_message()

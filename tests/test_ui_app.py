@@ -745,3 +745,287 @@ def test_main_reports_artifact_issues_before_rendering_page(
             effects,
         ),
     ]
+
+def _missing_artifact_issues(root):
+    return [
+        {
+            "artifact_type": "summary",
+            "file_name": "demo_summary.json",
+            "path": str(root / "demo_summary.json"),
+            "status": "missing",
+            "message": "Artifact was not found.",
+        },
+        {
+            "artifact_type": "warrant",
+            "file_name": "receipts",
+            "path": str(root / "receipts"),
+            "status": "missing",
+            "message": "Artifact folder was not found.",
+        },
+        {
+            "artifact_type": "effect",
+            "file_name": "effects",
+            "path": str(root / "effects"),
+            "status": "missing",
+            "message": "Artifact folder was not found.",
+        },
+    ]
+
+
+def test_missing_artifacts_generate_demo_and_reload(
+    monkeypatch,
+    tmp_path,
+):
+    generated_artifacts = (
+        {
+            "scenario": "75000_vendor_payment_replay",
+        },
+        [
+            {
+                "receipt_id": "warrant-held",
+            },
+            {
+                "receipt_id": "warrant-replay",
+            },
+        ],
+        [
+            {
+                "effect_id": "effect-held",
+            },
+            {
+                "effect_id": "effect-replay",
+            },
+        ],
+        [],
+    )
+
+    load_results = iter(
+        [
+            (
+                {},
+                [],
+                [],
+                _missing_artifact_issues(tmp_path),
+            ),
+            generated_artifacts,
+        ]
+    )
+
+    calls = []
+
+    def fake_load(root):
+        calls.append(("load", root))
+        return next(load_results)
+
+    def fake_generate(root):
+        calls.append(("generate", root))
+
+    monkeypatch.setattr(
+        app,
+        "load_artifacts_with_issues",
+        fake_load,
+    )
+    monkeypatch.setattr(
+        app,
+        "generate_replay_demo",
+        fake_generate,
+    )
+
+    result = app.load_artifacts_for_app(tmp_path)
+
+    assert result == generated_artifacts
+    assert calls == [
+        ("load", tmp_path),
+        ("generate", tmp_path),
+        ("load", tmp_path),
+    ]
+
+
+def test_existing_artifacts_are_not_overwritten(
+    monkeypatch,
+    tmp_path,
+):
+    existing_artifacts = (
+        {
+            "scenario": "payment_replay",
+        },
+        [
+            {
+                "receipt_id": "warrant-existing",
+            },
+        ],
+        [
+            {
+                "effect_id": "effect-existing",
+            },
+        ],
+        [],
+    )
+
+    monkeypatch.setattr(
+        app,
+        "load_artifacts_with_issues",
+        lambda root: existing_artifacts,
+    )
+    monkeypatch.setattr(
+        app,
+        "generate_replay_demo",
+        lambda root: pytest.fail(
+            "Existing artifacts must not be regenerated."
+        ),
+    )
+
+    result = app.load_artifacts_for_app(tmp_path)
+
+    assert result == existing_artifacts
+
+
+def test_partial_artifact_set_is_not_replaced(
+    monkeypatch,
+    tmp_path,
+):
+    missing_issues = _missing_artifact_issues(tmp_path)
+
+    partial_artifacts = (
+        {},
+        [],
+        [],
+        [
+            missing_issues[0],
+            missing_issues[2],
+        ],
+    )
+
+    monkeypatch.setattr(
+        app,
+        "load_artifacts_with_issues",
+        lambda root: partial_artifacts,
+    )
+    monkeypatch.setattr(
+        app,
+        "generate_replay_demo",
+        lambda root: pytest.fail(
+            "Partial artifact sets must not be replaced."
+        ),
+    )
+
+    result = app.load_artifacts_for_app(tmp_path)
+
+    assert result == partial_artifacts
+
+
+def test_malformed_artifact_set_is_not_replaced(
+    monkeypatch,
+    tmp_path,
+):
+    malformed_artifacts = (
+        {},
+        [],
+        [],
+        [
+            {
+                "artifact_type": "summary",
+                "file_name": "demo_summary.json",
+                "path": str(tmp_path / "demo_summary.json"),
+                "status": "malformed_json",
+                "message": "Malformed JSON at line 1, column 8.",
+            },
+        ],
+    )
+
+    monkeypatch.setattr(
+        app,
+        "load_artifacts_with_issues",
+        lambda root: malformed_artifacts,
+    )
+    monkeypatch.setattr(
+        app,
+        "generate_replay_demo",
+        lambda root: pytest.fail(
+            "Malformed artifacts must not be replaced."
+        ),
+    )
+
+    result = app.load_artifacts_for_app(tmp_path)
+
+    assert result == malformed_artifacts
+
+
+def test_demo_generation_failure_uses_issue_reporting(
+    monkeypatch,
+    tmp_path,
+):
+    load_count = 0
+
+    def fake_load(root):
+        nonlocal load_count
+        load_count += 1
+
+        return (
+            {},
+            [],
+            [],
+            _missing_artifact_issues(root),
+        )
+
+    def fail_generation(root):
+        raise OSError("Deployment filesystem is read-only.")
+
+    monkeypatch.setattr(
+        app,
+        "load_artifacts_with_issues",
+        fake_load,
+    )
+    monkeypatch.setattr(
+        app,
+        "generate_replay_demo",
+        fail_generation,
+    )
+
+    summary, receipts, effects, issues = (
+        app.load_artifacts_for_app(tmp_path)
+    )
+
+    assert load_count == 2
+
+    generation_issues = [
+        issue
+        for issue in issues
+        if issue.get("status") == "generation_failed"
+    ]
+
+    assert len(generation_issues) == 1
+    assert generation_issues[0]["artifact_type"] == (
+        "demo_generation"
+    )
+    assert generation_issues[0]["path"] == str(tmp_path)
+    assert "read-only" in generation_issues[0]["message"]
+
+    messages = []
+
+    monkeypatch.setattr(
+        app.st,
+        "warning",
+        lambda message: messages.append(
+            ("warning", message)
+        ),
+    )
+    monkeypatch.setattr(
+        app.st,
+        "error",
+        lambda message: messages.append(
+            ("error", message)
+        ),
+    )
+
+    app.render_artifact_load_issues(
+        summary,
+        receipts,
+        effects,
+        issues,
+    )
+
+    assert len(messages) == 1
+    assert messages[0][0] == "error"
+    assert "GENERATION FAILED" in messages[0][1]
+    assert "read-only" in messages[0][1]
