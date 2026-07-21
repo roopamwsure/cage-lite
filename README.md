@@ -18,7 +18,7 @@
   <br />
   <a href="https://pypi.org/project/cage-lite/">Install from PyPI</a>
   &middot;
-  <a href="https://github.com/roopamwsure/cage-lite/releases/tag/v0.1.1">View release v0.1.1</a>
+  <a href="https://github.com/roopamwsure/cage-lite/releases/tag/v0.1.2">View release v0.1.2</a>
 </p>
 
 > Agent platforms govern how agents run. CAGE governs whether agent actions are allowed to become business consequences.
@@ -35,7 +35,7 @@ Before an agent releases a payment, grants access, approves a transaction, updat
 
 CAGE adds that final assurance step before the action becomes a binding business consequence.
 
-CAGE-lite is currently a **v1 product preview**. The Python package version is `0.1.1`, and the current CAGE Warrant schema is version `0.4`.
+CAGE-lite is currently a **v1 product preview**. The Python package version is `0.1.2`, and the current CAGE Warrant schema is version `0.4`.
 
 CAGE-1 defines a broader evaluation framework across twelve areas. This release focuses on the Prebind Assurance path: evaluating an action before it crosses the business consequence boundary, recording the decision, and proving whether the resulting effect was blocked or allowed to bind.
 
@@ -206,7 +206,7 @@ The replay is admitted, the effect is allowed to bind, and the original held War
 
 - [Live CAGE-lite demo](https://cage-lite.streamlit.app/)
 - [CAGE-lite on PyPI](https://pypi.org/project/cage-lite/)
-- [CAGE-lite v0.1.1 release](https://github.com/roopamwsure/cage-lite/releases/tag/v0.1.1)
+- [CAGE-lite v0.1.2 release](https://github.com/roopamwsure/cage-lite/releases/tag/v0.1.2)
 - [CAGE-1 on arXiv](https://arxiv.org/abs/2607.03510)
 - [CAGE-1 author-hosted PDF](https://roopamwsure.github.io/publications/cage-1/CAGE-1_Control_Assurance_Governance_Evaluation.pdf)
 - [Changelog](CHANGELOG.md)

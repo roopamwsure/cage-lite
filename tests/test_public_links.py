@@ -11,7 +11,7 @@ def test_package_metadata_exposes_public_project_links():
         PROJECT_ROOT / "pyproject.toml"
     ).read_text(encoding="utf-8")
 
-    assert 'version = "0.1.1"' in pyproject
+    assert 'version = "0.1.2"' in pyproject
     assert (
         'description = "Open-source reference implementation '
         'for CAGE Prebind Assurance at the business consequence '
