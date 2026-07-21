@@ -10,6 +10,15 @@
 
 <p align="center">
   Prebind assurance for AI-agent actions at the business consequence boundary.
+
+  <br />
+  <strong>
+    <a href="https://cage-lite.streamlit.app/">Try the live CAGE-lite demo &rarr;</a>
+  </strong>
+  <br />
+  <a href="https://pypi.org/project/cage-lite/">Install from PyPI</a>
+  &middot;
+  <a href="https://github.com/roopamwsure/cage-lite/releases/tag/v0.1.1">View release v0.1.1</a>
 </p>
 
 > Agent platforms govern how agents run. CAGE governs whether agent actions are allowed to become business consequences.
@@ -29,6 +38,8 @@ CAGE-lite is currently a **v1 product preview**. The Python package version is `
 ## Product preview
 
 The CAGE-lite dashboard shows the latest boundary decision, the original held action, recent boundary runs, and the result of replaying the action after the missing evidence is supplied.
+
+The hosted demo automatically loads the standard USD 75,000 held-to-admitted replay, allowing visitors to inspect the boundary decision, CAGE Warrants, replay linkage, and effect proof without installing anything locally.
 
 <p align="center">
   <img
@@ -189,7 +200,9 @@ The replay is admitted, the effect is allowed to bind, and the original held War
 
 ## Project links
 
-- [CAGE-lite v0.1.0 product preview](https://github.com/roopamwsure/cage-lite/releases/tag/v0.1.0)
+- [Live CAGE-lite demo](https://cage-lite.streamlit.app/)
+- [CAGE-lite on PyPI](https://pypi.org/project/cage-lite/)
+- [CAGE-lite v0.1.1 release](https://github.com/roopamwsure/cage-lite/releases/tag/v0.1.1)
 - [CAGE-1 paper](https://roopamwsure.github.io/publications/cage-1/CAGE-1_Control_Assurance_Governance_Evaluation.pdf)
 - [Changelog](CHANGELOG.md)
 - [Contributing guide](CONTRIBUTING.md)
